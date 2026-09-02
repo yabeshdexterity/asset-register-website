@@ -91,90 +91,141 @@ body {
 }
 
 /* ============================================
-   SIDEBAR
+   SIDEBAR - FIXED POSITIONING
 ============================================ */
 .sidebar {
-  width: 250px;
-  background: var(--panel);
-  border-right: 1px solid var(--line);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 100vh;
-  z-index: 10;
-  overflow-y: auto;
-  transition: background 0.3s, border-color 0.3s;
+    width: 250px;
+    background: var(--panel);
+    border-right: 1px solid var(--line);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 10;
+    overflow-y: auto;
+    transition: background 0.3s, border-color 0.3s;
+    flex-shrink: 0;
 }
 
 .brand {
-  margin-bottom: 30px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--line);
+    margin-bottom: 25px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
 }
 
 .brand h1 {
-  font-size: 24px;
-  margin: 0;
-  color: var(--amber);
-  font-weight: 800;
-  font-family: 'Space Grotesk', sans-serif;
-  letter-spacing: -0.5px;
+    font-size: 22px;
+    margin: 0;
+    color: var(--amber);
+    font-weight: 800;
+    font-family: 'Space Grotesk', sans-serif;
+    letter-spacing: -0.5px;
 }
 
 .brand p {
-  font-size: 10px;
-  color: var(--muted);
-  margin: 5px 0 0;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin: 4px 0 0;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-family: 'JetBrains Mono', monospace;
 }
 
 .nav-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
 }
 
 .nav-item {
-  padding: 10px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--muted);
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s;
-  font-family: 'Inter', sans-serif;
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .nav-item:hover {
-  background: var(--panel-alt);
-  color: var(--text);
+    background: var(--panel-alt);
+    color: var(--text);
 }
 
 .nav-item.active {
-  background: var(--teal-dim);
-  color: var(--teal);
+    background: var(--teal-dim);
+    color: var(--teal);
 }
 
-/* ============================================
-   MAIN CONTENT
-============================================ */
+/* Theme Toggle - Standardized */
+.theme-toggle {
+    width: 100%;
+    margin-top: 8px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: var(--panel-alt);
+    border: 1px solid var(--line);
+    color: var(--text);
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.2s;
+    box-sizing: border-box;
+}
+
+.theme-toggle:hover {
+    border-color: var(--teal);
+    color: var(--teal);
+}
+
+/* Logout Button - Standardized */
+.logout-btn {
+    width: 100%;
+    margin-top: 8px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: rgba(224, 104, 95, 0.15);
+    border: 1px solid rgba(224, 104, 95, 0.3);
+    color: var(--danger);
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    box-sizing: border-box;
+}
+
+.logout-btn:hover {
+    background: var(--danger);
+    color: #fff;
+}
+
+/* Main Content - Adjust for fixed sidebar */
 .main-content {
-  flex: 1;
-  margin-left: 250px;
-  padding: 30px 40px;
-  width: calc(100% - 250px);
-  min-height: 100vh;
-  transition: background 0.3s;
+    flex: 1;
+    margin-left: 250px;
+    padding: 30px 40px;
+    width: calc(100% - 250px);
+    min-height: 100vh;
+    transition: background 0.3s;
 }
 
 /* ============================================
