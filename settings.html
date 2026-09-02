@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Asset Register</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/style.css">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Firebase Config -->
+    <script src="assets/firebase-config.js"></script>
+    
+    <!-- Shared Theme Controller -->
+    <script src="assets/theme.js"></script>
+    
+    <style>
+        .settings-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .settings-container h1 {
+            font-family: 'Space Grotesk';
+            font-size: 32px;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        .settings-container .subtitle {
+            color: var(--muted);
+            font-size: 14px;
+            margin-bottom: 40px;
+        }
+        .settings-card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+        .settings-card:hover {
+            border-color: var(--teal);
+        }
+        .settings-card .card-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+        .settings-card .card-header .icon {
+            font-size: 28px;
+        }
+        .settings-card .card-header h3 {
+            font-family: 'Space Grotesk';
+            font-size: 20px;
+            color: var(--text);
+            margin: 0;
+        }
+        .settings-card .card-header p {
+            color: var(--muted);
+            font-size: 13px;
+            margin: 4px 0 0;
+        }
+        .settings-card .description {
+            color: var(--muted);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        /* Theme Toggle Switch */
+        .theme-switch-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 10px 0;
+        }
+        .theme-switch {
+            position: relative;
+            width: 60px;
+            height: 32px;
+            background: var(--line);
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+        .theme-switch.active {
+            background: var(--teal);
+        }
+        .theme-switch .slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 26px;
+            height: 26px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .theme-switch.active .slider {
+            left: 31px;
+        }
+        .theme-switch-label {
+            font-family: 'Inter';
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text);
+        }
+        .theme-switch-label small {
+            color: var(--muted);
+            font-weight: 400;
+            font-size: 13px;
+        }
+        .theme-preview {
+            display: flex;
+            gap: 12px;
+            margin-top: 10px;
+        }
+        .theme-preview .preview-box {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: 'JetBrains Mono';
+            border: 1px solid var(--line);
+        }
+        .theme-preview .preview-box.light-preview {
+            background: #ffffff;
+            color: #1a1a2e;
+        }
+        .theme-preview .preview-box.dark-preview {
+            background: #1a1a2e;
+            color: #ffffff;
+        }
+        .btn-primary {
+            background: var(--teal);
+            color: #fff;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-family: 'Inter';
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary:hover {
+            background: var(--teal-hover);
+            transform: translateY(-2px);
+        }
+        .btn-secondary {
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--line);
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-family: 'Inter';
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-secondary:hover {
+            border-color: var(--teal);
+        }
+        .settings-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        .theme-status {
+            font-family: 'JetBrains Mono';
+            font-size: 13px;
+            color: var(--muted);
+            margin-top: 8px;
+        }
+        .theme-status strong {
+            color: var(--teal);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="brand"><h1>Asset Register</h1><p>IT Infrastructure</p></div>
+            <div class="nav-menu">
+                <a href="index.html" class="nav-item">📊 Dashboard</a>
+                <a href="system-details.html" class="nav-item">🖥️ System Details</a>
+                <a href="rentals.html" class="nav-item">🚚 Rental Details</a>
+                <a href="extra-assets.html" class="nav-item">📦 Extra Assets</a>
+                <a href="path-manager.html" class="nav-item">🗂️ Path Manager</a>
+                <a href="settings.html" class="nav-item active">⚙️ Settings</a>
+                <button class="theme-toggle" onclick="toggleTheme()" style="margin-top:10px; width:100%;">
+                    <span class="theme-icon">☀️</span>
+                    <span class="theme-label">Light Mode</span>
+                </button>
+                <button class="logout-btn" onclick="logout()" style="margin-top:10px;">Logout</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="settings-container">
+                <h1>⚙️ Settings</h1>
+                <p class="subtitle">Configure your application preferences</p>
+
+                <!-- Theme Settings Card -->
+                <div class="settings-card">
+                    <div class="card-header">
+                        <span class="icon">🎨</span>
+                        <div>
+                            <h3>Appearance</h3>
+                            <p>Choose between light and dark mode</p>
+                        </div>
+                    </div>
+                    <p class="description">This setting will apply to all pages of the application.</p>
+                    
+                    <div class="theme-switch-container">
+                        <div class="theme-switch" id="themeSwitch" onclick="handleThemeToggle()">
+                            <div class="slider"></div>
+                        </div>
+                        <div class="theme-switch-label">
+                            <span id="themeLabel">Dark Mode</span>
+                            <br><small id="themeSubLabel">Current: Dark</small>
+                        </div>
+                    </div>
+
+                    <div class="theme-preview">
+                        <span style="font-size:13px;color:var(--muted);font-family:'JetBrains Mono';">Preview:</span>
+                        <span class="preview-box light-preview">Light</span>
+                        <span class="preview-box dark-preview">Dark</span>
+                        <span style="font-size:13px;color:var(--muted);font-family:'JetBrains Mono';margin-left:10px;">
+                            Active: <strong id="activeThemeDisplay" style="color:var(--teal);">Dark</strong>
+                        </span>
+                    </div>
+
+                    <div class="theme-status" id="themeStatus">
+                        Theme preference saved to <strong>localStorage</strong> — syncs across all pages
+                    </div>
+                </div>
+
+                <!-- User Settings Card -->
+                <div class="settings-card">
+                    <div class="card-header">
+                        <span class="icon">👤</span>
+                        <div>
+                            <h3>User Account</h3>
+                            <p>Manage your account settings</p>
+                        </div>
+                    </div>
+                    <div id="userInfo">
+                        <p style="color:var(--muted);font-size:14px;">Loading user info...</p>
+                    </div>
+                    <div class="settings-actions">
+                        <button class="btn-secondary" onclick="logout()">🚪 Logout</button>
+                    </div>
+                </div>
+
+                <!-- About Card -->
+                <div class="settings-card">
+                    <div class="card-header">
+                        <span class="icon">ℹ️</span>
+                        <div>
+                            <h3>About</h3>
+                            <p>Asset Register System</p>
+                        </div>
+                    </div>
+                    <p style="color:var(--muted);font-size:14px;">
+                        <strong>Version:</strong> 1.0.0<br>
+                        <strong>Data Source:</strong> Firebase Firestore<br>
+                        <strong>Built with:</strong> HTML, CSS, JavaScript, Firebase
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // AUTH
+        // ============================================
+        
+        window.logout = async function() { 
+            await auth.signOut(); 
+            window.location.href = "login.html"; 
+        };
+
+        // Check auth state
+        auth.onAuthStateChanged(user => {
+            if (!user) {
+                window.location.href = "login.html";
+            } else {
+                // Display user info
+                document.getElementById('userInfo').innerHTML = `
+                    <p style="color:var(--text);font-size:14px;">
+                        <strong>Email:</strong> ${user.email}<br>
+                        <strong>UID:</strong> <span style="font-family:'JetBrains Mono';font-size:12px;color:var(--muted);">${user.uid}</span>
+                    </p>
+                `;
+            }
+        });
+
+        // ============================================
+        // THEME HANDLER FOR SETTINGS PAGE
+        // ============================================
+
+        function handleThemeToggle() {
+            toggleTheme();
+            updateSettingsUI();
+        }
+
+        function updateSettingsUI() {
+            const isLight = document.body.classList.contains('light-mode');
+            const switchEl = document.getElementById('themeSwitch');
+            const labelEl = document.getElementById('themeLabel');
+            const subLabelEl = document.getElementById('themeSubLabel');
+            const displayEl = document.getElementById('activeThemeDisplay');
+            
+            if (isLight) {
+                switchEl.classList.add('active');
+                labelEl.textContent = 'Light Mode';
+                subLabelEl.textContent = 'Current: Light';
+                displayEl.textContent = 'Light';
+            } else {
+                switchEl.classList.remove('active');
+                labelEl.textContent = 'Dark Mode';
+                subLabelEl.textContent = 'Current: Dark';
+                displayEl.textContent = 'Dark';
+            }
+        }
+
+        // Update UI when page loads (theme.js already loaded the theme)
+        document.addEventListener('DOMContentLoaded', function() {
+            updateSettingsUI();
+        });
+
+        // Also update when theme changes from other pages (if user clicks sidebar toggle)
+        // We'll check periodically or use a MutationObserver
+        setInterval(updateSettingsUI, 1000);
+
+        // ============================================
+        // SIDEBAR THEME TOGGLE - Uses shared function
+        // ============================================
+        
+        // The sidebar toggle button already calls toggleTheme() from theme.js
+        // But we need to update the switch UI when clicked
+        document.querySelector('.theme-toggle')?.addEventListener('click', function() {
+            setTimeout(updateSettingsUI, 100);
+        });
+    </script>
+</body>
+</html>
