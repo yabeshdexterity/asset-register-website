@@ -8,19 +8,17 @@
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-<div class="app-container">
+<div class="app-container" id="appContainer" style="display:none;">
   <div class="sidebar">
     <div class="brand"><h1>Asset Register</h1><p>IT Infrastructure</p></div>
     <div class="nav-menu">
       <a href="index.html" class="nav-item">📊 Dashboard</a>
+      <a href="system-details.html" class="nav-item">🖥️ System Details</a>
       <a href="rentals.html" class="nav-item">🚚 Rental Details</a>
       <a href="extra-assets.html" class="nav-item">📦 Extra Assets</a>
       <a href="path-manager.html" class="nav-item active">🗂️ Path Manager</a>
-      <button class="btn" onclick="openSettings()" style="margin-top:10px; width:100%;">⚙️ Settings</button>
-      <button class="theme-toggle" onclick="toggleTheme()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 20v-2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m20 0h-2M4.22 19.78l1.42-1.42M17.66 5.34l1.42-1.42"/></svg>
-        <span id="themeLabel">Light Mode</span>
-      </button>
+      <button class="theme-toggle" onclick="toggleTheme()">🌗 Theme</button>
+      <button class="logout-btn" onclick="logout()">Logout</button>
     </div>
   </div>
 
@@ -42,61 +40,15 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="settingsModal">
-  <div class="modal">
-    <h2>Cloud Settings</h2>
-    <div class="form-group"><label>JSONBin API Key</label><input type="password" id="webApiKey"></div>
-    <div class="form-group"><label>JSONBin Bin ID</label><input type="text" id="webBinId"></div>
-    <div class="modal-actions"><button class="btn" onclick="closeSettings()">Cancel</button><button class="btn primary" onclick="saveSettings()">Save</button></div>
-  </div>
-</div>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-<script>
-let pmData = [];
-let editingPM = -1;
-
-function loadSettings() { return { apiKey: localStorage.getItem('webApiKey'), binId: localStorage.getItem('webBinId') }; }
-async function apiRequest(method, path, body = null) { const { apiKey, binId } = loadSettings(); if (!apiKey || !binId) return null; try { const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}${path}`, { method, headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey }, body: body ? JSON.stringify(body) : null }); if (method === 'GET') { const result = await response.json(); return result.record; } return true; } catch (e) { console.error(e); return null; } }
-
-// Loads everything, keeps only paths
-async function loadPaths() { const cloudData = await apiRequest('GET', '/latest'); if (cloudData && cloudData.paths) pmData = cloudData.paths; renderPM(); }
-
-// Saves EVERYTHING, not just paths!
-async function saveAllData() { const cloudData = await apiRequest('GET', '/latest'); if (!cloudData) return; cloudData.paths = pmData; await apiRequest('PUT', '', cloudData); }
-
-function showToast(msg) { let toast = document.querySelector('.toast'); if (!toast) { toast = document.createElement('div'); toast.className = 'toast'; document.body.appendChild(toast); } toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 3000); }
-function openSettings() { const s = loadSettings(); document.getElementById('webApiKey').value = s.apiKey || ''; document.getElementById('webBinId').value = s.binId || ''; document.getElementById('settingsModal').classList.add('active'); }
-function closeSettings() { document.getElementById('settingsModal').classList.remove('active'); }
-function saveSettings() { const apiKey = document.getElementById('webApiKey').value.trim(); const binId = document.getElementById('webBinId').value.trim(); if (!apiKey || !binId) { showToast('❌ Please enter both'); return; } localStorage.setItem('webApiKey', apiKey); localStorage.setItem('webBinId', binId); closeSettings(); showToast('✅ Settings saved!'); loadPaths(); }
-function normalizePath(path) { if (!path) return ""; path = path.trim().replace(/\//g, "\\"); if (path.startsWith("\\") && !path.startsWith("\\\\")) path = "\\" + path; return path; }
-function renderPM() { const tbody = document.getElementById('pmTableBody'); tbody.innerHTML = ''; pmData.forEach((p, i) => { tbody.innerHTML += `<tr><td>${p.category}</td><td>${p.name}</td><td>${p.path}</td><td><button class="btn" onclick="editPM(${i})">✏️</button> <button class="btn danger" onclick="deletePM(${i})">🗑️</button></td></tr>`; }); }
-async function addPM() { const d = { category: document.getElementById('pmCategory').value, name: document.getElementById('pmName').value, path: normalizePath(document.getElementById('pmPath').value) }; if (!d.name || !d.path) return showToast('Please fill all fields'); if (editingPM > -1) pmData[editingPM] = d; else pmData.push(d); await saveAllData(); clearPM(); renderPM(); showToast('✅ Path saved!'); }
-function editPM(i) { editingPM = i; const p = pmData[i]; document.getElementById('pmCategory').value = p.category; document.getElementById('pmName').value = p.name; document.getElementById('pmPath').value = p.path; document.getElementById('pmAddBtn').innerText = 'Update Path'; document.getElementById('pmCancelBtn').style.display = 'inline-flex'; }
-async function deletePM(i) { pmData.splice(i, 1); await saveAllData(); renderPM(); }
-function clearPM() { document.getElementById('pmName').value = ''; document.getElementById('pmPath').value = ''; document.getElementById('pmAddBtn').innerText = '+ Add Path'; document.getElementById('pmCancelBtn').style.display = 'none'; editingPM = -1; }
-document.getElementById('pmAddBtn').onclick = addPM;
-document.getElementById('pmCancelBtn').onclick = clearPM;
-document.addEventListener('DOMContentLoaded', loadPaths);
-
-// Theme Toggle
-function toggleTheme() {
-  const body = document.body;
-  body.classList.toggle('light-mode');
-  const label = document.getElementById('themeLabel');
-  if (body.classList.contains('light-mode')) {
-    label.textContent = 'Dark Mode';
-    localStorage.setItem('theme', 'light');
-  } else {
-    label.textContent = 'Light Mode';
-    localStorage.setItem('theme', 'dark');
-  }
-}
-
-// Load theme on startup
-if (localStorage.getItem('theme') === 'light') {
-  document.body.classList.add('light-mode');
-  document.getElementById('themeLabel').textContent = 'Dark Mode';
-}
-</script>
-</body>
-</html>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAcBaKxlFC4Yqg4SNdg8l0lbo9dFCNTtJU",
+    authDomain: "asset-register-website.firebaseapp.com",
+    projectId: "asset-register-website",
+    storageBucket: "asset-register-website.firebasestorage.app",
+    messagingSenderId: "921107638281",
+    appId
