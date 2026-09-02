@@ -6,6 +6,51 @@
 <title>Dashboard - Asset Register</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
+<style>
+  /* Dashboard Specific Styles */
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 40px; }
+  
+  .stat-card { 
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px; 
+    padding: 25px; position: relative; overflow: hidden; transition: all .3s;
+  }
+  .stat-card:hover { transform: translateY(-3px); border-color: var(--teal); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+  
+  .stat-card .stat-icon { font-size: 24px; margin-bottom: 10px; }
+  .stat-card .num { font-family: 'Space Grotesk'; font-size: 42px; font-weight: 700; line-height: 1; }
+  .stat-card .lbl { font-family: 'JetBrains Mono'; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 8px; }
+  
+  /* Card Colors */
+  .stat-card.blue { border-left: 4px solid #3498db; }
+  .stat-card.blue .num { color: #3498db; }
+  .stat-card.green { border-left: 4px solid #2ecc71; }
+  .stat-card.green .num { color: #2ecc71; }
+  .stat-card.orange { border-left: 4px solid #f39c12; }
+  .stat-card.orange .num { color: #f39c12; }
+  .stat-card.red { border-left: 4px solid #e74c3c; }
+  .stat-card.red .num { color: #e74c3c; }
+  .stat-card.purple { border-left: 4px solid #9b59b6; }
+  .stat-card.purple .num { color: #9b59b6; }
+
+  /* Quick Actions */
+  .quick-actions { margin-top: 20px; }
+  .quick-actions h3 { font-family: 'JetBrains Mono'; color: var(--muted); font-size: 14px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
+  .action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; }
+  
+  .action-card { 
+    background: var(--panel-alt); border: 1px solid var(--line); border-radius: 10px; 
+    padding: 20px; text-decoration: none; color: var(--text); font-size: 13px;
+    font-weight: 600; transition: all .2s; display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .action-card:hover { background: var(--teal-dim); border-color: var(--teal); color: var(--teal); }
+  .action-card .action-icon { font-size: 28px; }
+  .action-card .action-label { font-family: 'JetBrains Mono'; }
+
+  /* Welcome */
+  .welcome { margin-bottom: 30px; }
+  .welcome h2 { font-family: 'Space Grotesk'; font-size: 28px; color: var(--text); margin: 0 0 5px; }
+  .welcome p { color: var(--muted); font-size: 14px; margin: 0; }
+</style>
 </head>
 <body>
 <div class="app-container">
@@ -23,22 +68,33 @@
 
   <div class="main-content">
     <div class="topbar">
-      <h2>Dashboard</h2>
+      <div class="welcome">
+        <h2>Overview</h2>
+        <p>Monitor your IT infrastructure status at a glance.</p>
+      </div>
       <div class="topbar-actions">
         <button class="btn" onclick="loadAndRender()">🔄 Sync</button>
         <button class="btn primary" onclick="exportReport()">📊 Export</button>
       </div>
     </div>
 
-    <div class="stats-grid" id="statsGrid"></div>
-    
-    <div style="text-align: center; margin-top: 50px; color: var(--muted);">
-      <h3 style="font-family:'JetBrains Mono'; font-size: 14px;">Welcome to Asset Register</h3>
-      <p>Select a category from the sidebar to manage your data.</p>
+    <!-- Stats Grid -->
+    <div class="stat-grid" id="statsGrid"></div>
+
+    <!-- Quick Actions Panel -->
+    <div class="quick-actions">
+      <h3>Quick Actions</h3>
+      <div class="action-grid">
+        <a href="system-details.html" class="action-card"><span class="action-icon">💺</span><span class="action-label">Manage Seats</span></a>
+        <a href="rentals.html" class="action-card"><span class="action-icon">🚚</span><span class="action-label">Add Rental</span></a>
+        <a href="extra-assets.html" class="action-card"><span class="action-icon">📦</span><span class="action-label">Add Extra Asset</span></a>
+        <a href="path-manager.html" class="action-card"><span class="action-icon">🗂️</span><span class="action-label">Manage Paths</span></a>
+      </div>
     </div>
   </div>
 </div>
 
+<!-- Settings Modal -->
 <div class="modal-overlay" id="settingsModal">
   <div class="modal">
     <h2>Cloud Settings</h2>
@@ -53,7 +109,6 @@
 
 <script>
 let data = [], extraAssets = {cpu:[],monitor:[],keyboard:[],mouse:[]}, rentalItems = [], pmData = [];
-const FIELDS = [{key:"seating_id", label:"Seating ID"}, {key:"seating_availability", label:"Status"}, {key:"employee_name", label:"Employee Name"}, {key:"employee_id", label:"Employee ID"}, {key:"employment_type", label:"Employment Type"}, {key:"intercom_number", label:"Intercom Number"}, {key:"desktop_name", label:"Desktop Name"}, {key:"ip_address", label:"IP Address"}, {key:"processor", label:"Processor"}, {key:"ram", label:"RAM"}, {key:"graphics_card", label:"Graphics Card"}, {key:"ssd", label:"SSD"}, {key:"hard_disk", label:"Hard Disk"}, {key:"keyboard_brand", label:"Keyboard Brand"}, {key:"mouse_brand", label:"Mouse Brand"}, {key:"cpu_cabinet_brand", label:"CPU Cabinet Brand"}, {key:"cpu_cabinet_id", label:"CPU Cabinet ID"}, {key:"monitor1_brand", label:"Monitor 1 Brand"}, {key:"monitor1_id", label:"Monitor 1 ID"}, {key:"monitor1_inches", label:"Monitor 1 Inches"}, {key:"monitor2_brand", label:"Monitor 2 Brand"}, {key:"monitor2_id", label:"Monitor 2 ID"}, {key:"monitor2_inches", label:"Monitor 2 Inches"}, {key:"ownership_cpu", label:"CPU Ownership"}, {key:"ownership_monitor1", label:"Monitor 1 Ownership"}, {key:"ownership_monitor2", label:"Monitor 2 Ownership"}, {key:"ownership_keyboard", label:"Keyboard Ownership"}, {key:"ownership_mouse", label:"Mouse Ownership"}];
 
 function loadSettings() { return { apiKey: localStorage.getItem('webApiKey'), binId: localStorage.getItem('webBinId') }; }
 async function apiRequest(method, path, body = null) { const { apiKey, binId } = loadSettings(); if (!apiKey || !binId) return null; try { const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}${path}`, { method, headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey }, body: body ? JSON.stringify(body) : null }); if (method === 'GET') { const result = await response.json(); return result.record; } return true; } catch (e) { console.error(e); return null; } }
@@ -75,15 +130,52 @@ async function exportReport() {
   const buffer = await workbook.xlsx.writeBuffer(); const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }); saveAs(blob, `asset_register_${new Date().toISOString().slice(0,10)}.xlsx`); showToast('✅ Report exported!');
 }
 
+const FIELDS = [
+  {key:"seating_id", label:"Seating ID"}, {key:"seating_availability", label:"Status"}, 
+  {key:"employee_name", label:"Employee Name"}, {key:"employee_id", label:"Employee ID"},
+  {key:"employment_type", label:"Employment Type"}, {key:"intercom_number", label:"Intercom Number"}, 
+  {key:"desktop_name", label:"Desktop Name"}, {key:"ip_address", label:"IP Address"},
+  {key:"processor", label:"Processor"}, {key:"ram", label:"RAM"}, {key:"graphics_card", label:"Graphics Card"},
+  {key:"ssd", label:"SSD"}, {key:"hard_disk", label:"Hard Disk"}, {key:"keyboard_brand", label:"Keyboard Brand"},
+  {key:"mouse_brand", label:"Mouse Brand"}, {key:"cpu_cabinet_brand", label:"CPU Cabinet Brand"}, 
+  {key:"cpu_cabinet_id", label:"CPU Cabinet ID"}, {key:"monitor1_brand", label:"Monitor 1 Brand"},
+  {key:"monitor1_id", label:"Monitor 1 ID"}, {key:"monitor1_inches", label:"Monitor 1 Inches"},
+  {key:"monitor2_brand", label:"Monitor 2 Brand"}, {key:"monitor2_id", label:"Monitor 2 ID"},
+  {key:"monitor2_inches", label:"Monitor 2 Inches"}, {key:"ownership_cpu", label:"CPU Ownership"},
+  {key:"ownership_monitor1", label:"Monitor 1 Ownership"}, {key:"ownership_monitor2", label:"Monitor 2 Ownership"},
+  {key:"ownership_keyboard", label:"Keyboard Ownership"}, {key:"ownership_mouse", label:"Mouse Ownership"}
+];
+
 function renderStats() {
   const occ = data.filter(d=>d.seating_availability==='Occupied').length;
   let extraTotal = 0; Object.values(extraAssets).forEach(arr => arr.forEach(i => extraTotal += i.quantity));
+  
   document.getElementById('statsGrid').innerHTML = `
-    <div class="stat-card"><div class="num">${data.length}</div><div class="lbl">Total Seats</div></div>
-    <div class="stat-card"><div class="num">${occ}</div><div class="lbl">Occupied</div></div>
-    <div class="stat-card"><div class="num">${data.length - occ}</div><div class="lbl">Vacant</div></div>
-    <div class="stat-card"><div class="num">${rentalItems.length}</div><div class="lbl">Rental Items</div></div>
-    <div class="stat-card"><div class="num">${extraTotal}</div><div class="lbl">Extra Assets</div></div>
+    <div class="stat-card blue">
+      <div class="stat-icon">🖥️</div>
+      <div class="num">${data.length}</div>
+      <div class="lbl">Total Systems</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-icon">💺</div>
+      <div class="num">${occ}</div>
+      <div class="lbl">Occupied Seats</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-icon">🪑</div>
+      <div class="num">${data.length - occ}</div>
+      <div class="lbl">Vacant Seats</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="stat-icon">🚚</div>
+      <div class="num">${rentalItems.length}</div>
+      <div class="lbl">Rental Systems</div>
+    </div>
+    <div class="stat-card purple">
+      <div class="stat-icon">📦</div>
+      <div class="num">${extraTotal}</div>
+      <div class="lbl">Extra Assets</div>
+    </div>
   `;
 }
 
