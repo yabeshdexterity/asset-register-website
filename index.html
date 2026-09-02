@@ -1,0 +1,1856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asset Register - Web</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<style>
+  :root{
+    --bg:#0e1520; --panel:#161f2d; --panel-alt:#1c2637; --line:#2a3648; --text:#e7edf5;
+    --muted:#8695a7; --amber:#e3a542; --amber-dim:#5c4726; --teal:#4fd1c5; --teal-dim:#1c3a37;
+    --vacant:#3d4a5f; --danger:#e0685f; --danger-dim:#5c2a28; --success:#4caf50;
+    --purple:#9b59b6; --purple-dim:#3d2a4a; --rental-color:#f39c12; --rental-dim:#5c4010;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;}
+  ::selection{background:var(--teal-dim);color:var(--teal);}
+
+  .app-wrapper { display: flex; min-height: 100vh; position: relative; }
+
+  /* Toggles */
+  .extra-assets-toggle, .rental-toggle {
+    position: fixed; left: 0; z-index: 140; background: var(--purple); color: #fff; border: none;
+    border-radius: 0 8px 8px 0; padding: 16px 10px; cursor: pointer; font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; writing-mode: vertical-rl;
+    transition: all .3s; box-shadow: 4px 0 20px rgba(155, 89, 182, 0.3);
+  }
+  .extra-assets-toggle { top: 42%; transform: translateY(-50%); }
+  .extra-assets-toggle:hover { background: #8e44ad; padding-left: 14px; }
+  .extra-assets-toggle svg { width: 20px; height: 20px; margin-bottom: 8px; display: block; }
+
+  .rental-toggle { top: 55%; transform: translateY(-50%); background: var(--rental-color); box-shadow: 4px 0 20px rgba(243, 156, 18, 0.3); }
+  .rental-toggle:hover { background: #e67e22; padding-left: 14px; }
+  .rental-toggle svg { width: 20px; height: 20px; margin-bottom: 8px; display: block; }
+
+  .main-content { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .main-content.hidden { display: none; }
+
+  .topbar{
+    position:sticky;top:0;z-index:20; background:rgba(14,21,32,0.92);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line); padding:18px 28px; display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+  }
+  .brand{display:flex;flex-direction:column;gap:2px;margin-right:auto;}
+  .brand .eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.18em;color:var(--amber);text-transform:uppercase;}
+  .brand h1{font-family:'Space Grotesk',sans-serif;font-size:20px;margin:0;font-weight:700;letter-spacing:-0.01em;}
+
+  .search-wrap{position:relative;}
+  .search-wrap input{
+    background:var(--panel-alt);border:1px solid var(--line);color:var(--text);
+    padding:10px 14px 10px 34px;border-radius:8px;font-family:'Inter';font-size:14px;
+    width:260px;outline:none;transition:border-color .15s;
+  }
+  .search-wrap input:focus{border-color:var(--teal);}
+  .search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--muted);}
+
+  .btn{
+    font-family:'JetBrains Mono',monospace;font-size:12.5px;letter-spacing:0.03em;
+    padding:10px 16px;border-radius:8px;border:1px solid var(--line); background:var(--panel-alt);
+    color:var(--text);cursor:pointer; display:inline-flex;align-items:center;gap:8px;transition:all .15s;
+    text-transform:uppercase;font-weight:500;
+  }
+  .btn:hover{border-color:var(--teal);color:var(--teal);}
+  .btn.primary{background:var(--amber);border-color:var(--amber);color:#1a1305;font-weight:600;}
+  .btn.primary:hover{background:#f0b158;color:#1a1305;}
+  .btn.ghost{background:transparent;}
+  .btn.danger{background:var(--danger-dim);border-color:var(--danger);color:var(--danger);font-weight:600;}
+  .btn.danger:hover{background:var(--danger);border-color:var(--danger);color:#fff;}
+  .btn.success{background:var(--success);border-color:var(--success);color:#fff;font-weight:600;}
+  .btn.success:hover{background:#45a049;color:#fff;}
+  .btn svg{width:14px;height:14px;}
+
+  .stats{display:flex;gap:10px;padding:0 28px;margin-top:16px;flex-wrap:wrap;}
+  .stat{ background:var(--panel);border:1px solid var(--line);border-radius:10px; padding:12px 18px;min-width:110px;}
+  .stat .num{font-family:'Space Grotesk';font-size:24px;font-weight:700;}
+  .stat .lbl{font-family:'JetBrains Mono';font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-top:2px;}
+  .stat.occupied .num{color:var(--amber);} .stat.vacant .num{color:var(--muted);} .stat.purple .num{color:var(--purple);} .stat.rental .num{color:var(--rental-color);} .periph-card{min-width:150px;}
+
+  .periph-breakdown {
+    display: flex; gap: 12px; margin-top: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted);
+  }
+  .periph-breakdown .office { color: var(--amber); } .periph-breakdown .rental { color: var(--teal); }
+  .periph-breakdown span { display: flex; align-items: center; gap: 2px; }
+  .periph-breakdown span::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 3px; }
+  .periph-breakdown .office::before { background: var(--amber); } .periph-breakdown .rental::before { background: var(--teal); }
+
+  .dashboard-layout { display: flex; gap: 20px; padding: 16px 28px 60px; align-items: flex-start; flex: 1; }
+
+  .left-panel {
+    width: 240px; flex-shrink: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 12px; position: sticky; top: 90px; max-height: calc(100vh - 140px); overflow-y: auto;
+  }
+  .left-panel::-webkit-scrollbar { width: 3px; }
+  .left-panel::-webkit-scrollbar-track { background: var(--bg); border-radius: 3px; }
+  .left-panel::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+
+  .panel-title {
+    font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 600; color: var(--text);
+    padding-bottom: 8px; border-bottom: 2px solid var(--line); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
+  }
+  .panel-title .count-badge { font-family: 'JetBrains Mono', monospace; font-size: 10px; background: var(--amber-dim); color: var(--amber); padding: 1px 8px; border-radius: 12px; }
+
+  .seat-list { display: flex; flex-direction: column; gap: 4px; }
+  .seat-list-item {
+    background: var(--panel-alt); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px;
+    cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 8px;
+  }
+  .seat-list-item:hover { border-color: var(--teal); background: var(--panel); transform: translateX(4px); }
+  .seat-list-item .seat-id { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; color: var(--muted); min-width: 28px; }
+  .seat-list-item.occupied .seat-id { color: var(--amber); }
+  .seat-list-item .seat-info { flex: 1; min-width: 0; }
+  .seat-list-item .seat-info .name { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .seat-list-item .seat-info .desktop { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .seat-list-item .status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .seat-list-item .status-dot.occupied { background: var(--amber); } .seat-list-item .status-dot.vacant { background: var(--muted); }
+  .seat-list-item .status-dot.highlight-dot { box-shadow: 0 0 12px var(--amber); animation: pulse 1s ease-in-out 3; }
+  .seat-list-item .seat-icon { font-size: 14px; flex-shrink: 0; }
+
+  @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.5); } }
+  .seat-list-item.highlight-item { border-color: var(--amber) !important; box-shadow: 0 0 20px rgba(227, 165, 66, 0.2); background: var(--amber-dim); }
+
+  .right-panel { flex: 1; min-width: 0; }
+  .right-panel .system-details-section { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin-bottom: 20px; }
+  .right-panel .system-details-section .section-title { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 600; color: var(--text); padding-bottom: 12px; border-bottom: 2px solid var(--line); margin-bottom: 14px; }
+  .right-panel .system-details-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .right-panel .detail-item { background: var(--panel-alt); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; }
+  .right-panel .detail-item .detail-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .right-panel .detail-item .detail-icon { font-size: 14px; }
+  .right-panel .detail-item .detail-label { flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .right-panel .detail-item .detail-count { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; color: var(--amber); }
+  .right-panel .detail-item .detail-breakdown { display: flex; gap: 12px; padding-left: 22px; font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--muted); }
+  .right-panel .detail-item .detail-breakdown .office { color: var(--amber); } .right-panel .detail-item .detail-breakdown .rental { color: var(--teal); }
+  .right-panel .detail-item .detail-breakdown span { display: flex; align-items: center; gap: 3px; }
+
+  .right-panel .extra-assets-section { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin-bottom: 20px; }
+  .right-panel .extra-assets-section .section-title { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 600; color: var(--text); padding-bottom: 12px; border-bottom: 2px solid var(--line); margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+  .right-panel .extra-assets-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .right-panel .extra-asset-item { background: var(--panel-alt); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; }
+  .right-panel .extra-asset-item .label { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .right-panel .extra-asset-item .count { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; color: var(--purple); }
+
+  .right-panel .seat-details-section { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; min-height: 200px; }
+  .right-panel .seat-details-section .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+
+  .detail { display: none; } .detail.active { display: block; } .row-groups { display: none; } .row-groups.hidden { display: none; }
+
+  .back-link{ display:inline-flex;align-items:center;gap:6px;color:var(--muted);text-decoration:none;font-family:'JetBrains Mono';font-size:12.5px;cursor:pointer;margin-bottom:18px;text-transform:uppercase;letter-spacing:0.05em; }
+  .back-link:hover{color:var(--teal);} .back-link svg{width:14px;height:14px;}
+
+  .detail-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;gap:16px;flex-wrap:wrap;}
+  .detail-head .tag{font-family:'JetBrains Mono';font-size:12px;color:var(--amber);letter-spacing:0.15em;text-transform:uppercase;}
+  .detail-head h2{font-family:'Space Grotesk';font-size:28px;margin:4px 0 0;font-weight:700;}
+  .detail-actions{display:flex;gap:10px;flex-wrap:wrap;}
+
+  .section{background:var(--panel-alt);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin-bottom:16px;}
+  .section h3{ font-family:'JetBrains Mono';font-size:11.5px;color:var(--teal);text-transform:uppercase; letter-spacing:0.14em;margin:0 0 16px;padding-bottom:10px;border-bottom:1px solid var(--line); }
+  .field-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px 18px;}
+  .field label{display:block;font-family:'JetBrains Mono';font-size:10.5px;color:var(--muted); text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;}
+  .field input, .field select{ width:100%;background:var(--bg);border:1px solid var(--line);border-radius:7px; padding:9px 11px;color:var(--text);font-family:'Inter';font-size:13.5px;outline:none; transition:border-color .15s; }
+  .field input:focus, .field select:focus{border-color:var(--teal);} .field.readonly input{color:var(--muted);}
+
+  .fixed-save-btn {
+    position: fixed; bottom: 30px; right: 30px; z-index: 100; font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    letter-spacing: 0.03em; padding: 14px 28px; border-radius: 12px; border: none; background: var(--amber); color: #1a1305;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 10px; transition: all .2s; text-transform: uppercase;
+    font-weight: 600; box-shadow: 0 8px 32px rgba(227, 165, 66, 0.3);
+  }
+  .fixed-save-btn:hover { background: #f0b158; transform: translateY(-2px); box-shadow: 0 12px 40px rgba(227, 165, 66, 0.4); }
+  .fixed-save-btn svg { width: 18px; height: 18px; } .fixed-save-btn.hidden { display: none; }
+
+  /* FULL PAGE PANELS */
+  .extra-assets-panel, .rental-panel {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: var(--bg); z-index: 200;
+    overflow-y: auto; padding: 30px 40px; display: none; opacity: 0; transition: opacity 0.3s ease;
+  }
+  .extra-assets-panel.open, .rental-panel.open { display: block; opacity: 1; }
+  .extra-assets-panel .panel-header, .rental-panel .panel-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px;
+    border-bottom: 2px solid var(--line); position: sticky; top: 0; background: var(--bg); z-index: 10; padding-top: 10px;
+  }
+  .extra-assets-panel .panel-header h2, .rental-panel .panel-header h2 { font-family: 'Space Grotesk', sans-serif; font-size: 28px; margin: 0; display: flex; align-items: center; gap: 12px; }
+  .extra-assets-panel .panel-header h2 { color: var(--purple); } .rental-panel .panel-header h2 { color: var(--rental-color); }
+  .extra-assets-panel .panel-header .close-btn, .rental-panel .panel-header .close-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 32px; transition: color .2s; padding: 0 12px; line-height: 1; }
+  .extra-assets-panel .panel-header .close-btn:hover, .rental-panel .panel-header .close-btn:hover { color: var(--danger); }
+  .panel-content { max-width: 1400px; margin: 0 auto; }
+  .panel-back-btn { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); text-decoration: none; font-family: 'JetBrains Mono', monospace; font-size: 13px; cursor: pointer; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); transition: all .2s; background: var(--panel-alt); }
+  .panel-back-btn:hover { color: var(--teal); border-color: var(--teal); } .panel-back-btn svg { width: 16px; height: 16px; }
+
+  /* Extra Assets CSS */
+  .extra-assets-panel .section-title { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 600; margin-bottom: 20px; color: var(--purple); }
+  .extra-assets-panel .asset-category { background: var(--panel-alt); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
+  .extra-assets-panel .asset-category .cat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .extra-assets-panel .asset-category .cat-header h4 { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--teal); text-transform: uppercase; letter-spacing: 0.08em; margin: 0; }
+  .extra-assets-panel .asset-category .cat-header .count { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--muted); background: var(--bg); padding: 2px 10px; border-radius: 12px; }
+  .extra-assets-panel .asset-item { display: flex; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .extra-assets-panel .asset-item:last-child { border-bottom: none; }
+  .extra-assets-panel .asset-item .item-detail { flex: 1; color: var(--text); font-family: 'Inter', sans-serif; }
+  .extra-assets-panel .asset-item .item-detail .spec { color: var(--muted); font-size: 11px; font-family: 'JetBrains Mono', monospace; }
+  .extra-assets-panel .asset-item .remove-btn { background: none; border: none; color: var(--muted); cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: all .15s; font-size: 13px; }
+  .extra-assets-panel .asset-item .remove-btn:hover { color: var(--danger); background: rgba(224, 104, 95, 0.2); }
+  .extra-assets-panel .add-asset-form { background: var(--panel-alt); border: 1px dashed var(--line); border-radius: 10px; padding: 14px 16px; margin-bottom: 30px; }
+  .extra-assets-panel .add-asset-form h3 { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--teal); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 20px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+  .extra-assets-panel .add-asset-form .form-group { margin-bottom: 10px; }
+  .extra-assets-panel .add-asset-form .form-group label { display: block; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .extra-assets-panel .add-asset-form .form-group select, .extra-assets-panel .add-asset-form .form-group input { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px; outline: none; transition: border-color .15s; }
+  .extra-assets-panel .add-asset-form .form-group select:focus, .extra-assets-panel .add-asset-form .form-group input:focus { border-color: var(--teal); }
+  .extra-assets-panel .add-asset-form .form-group select option { background: var(--panel); color: var(--text); }
+  .extra-assets-panel .add-asset-form .add-btn { width: 100%; padding: 10px; border: 1px solid var(--purple); background: var(--purple-dim); color: var(--purple); border-radius: 6px; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; transition: all .15s; margin-top: 4px; }
+  .extra-assets-panel .add-asset-form .add-btn:hover { background: var(--purple); color: #fff; }
+
+  /* Rental Panel CSS */
+  .rental-panel .section-title { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 600; margin-bottom: 20px; color: var(--rental-color); }
+  .rental-panel .add-rental-form { background: var(--panel-alt); border: 1px dashed var(--line); border-radius: 10px; padding: 20px; margin-bottom: 30px; }
+  .rental-panel .add-rental-form h3 { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--teal); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 20px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+  .rental-panel .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; margin-bottom: 20px; }
+  .rental-panel .form-group { display: flex; flex-direction: column; }
+  .rental-panel .form-group label { display: block; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .rental-panel .form-group input, .rental-panel .form-group select { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; outline: none; transition: border-color .15s; }
+  .rental-panel .form-group input:focus, .rental-panel .form-group select:focus { border-color: var(--teal); }
+  .rental-panel .form-group input::placeholder { color: var(--muted); }
+  .rental-panel .form-actions { display: flex; gap: 10px; margin-top: 10px; justify-content: flex-end; border-top: 1px solid var(--line); padding-top: 16px; }
+  .date-btn-group { display: flex; gap: 6px; }
+  .date-btn-group .today-btn { background: var(--amber-dim); border: 1px solid var(--amber); color: var(--amber); border-radius: 6px; padding: 8px 12px; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 11px; white-space: nowrap; transition: all .15s; }
+  .date-btn-group .today-btn:hover { background: var(--amber); color: #1a1305; }
+  .typing-date-input { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 14px; outline: none; transition: border-color .15s; cursor: text; }
+  .typing-date-input:focus { border-color: var(--teal); } .typing-date-input::placeholder { color: var(--muted); letter-spacing: 1px; font-size: 12px; }
+  .batch-input-highlight { border-color: var(--rental-color) !important; box-shadow: 0 0 8px rgba(243, 156, 18, 0.2); }
+  .rental-panel .rental-table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .rental-panel .rental-table th { background: var(--panel-alt); color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; padding: 12px 8px; border-bottom: 2px solid var(--line); text-align: center; }
+  .rental-panel .rental-table td { padding: 10px 8px; border-bottom: 1px solid var(--line); font-size: 13px; text-align: center; color: var(--text); vertical-align: middle; }
+  .rental-panel .rental-table tr:last-child td { border-bottom: none; }
+  .rental-panel .rental-table .total-row td { background: var(--teal-dim); color: var(--teal); font-weight: 700; font-family: 'Space Grotesk', sans-serif; border-top: 2px solid var(--teal); }
+  .rental-panel .rental-table .batch-group-row td { background: var(--rental-dim); color: var(--rental-color); font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; text-align: left; padding: 12px 15px; border-top: 2px solid var(--rental-color); border-bottom: 2px solid var(--rental-color); }
+  .rental-panel .rental-table .actions-cell { display: flex; gap: 6px; justify-content: center; }
+  .rental-panel .edit-btn, .rental-panel .delete-btn { background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px; border-radius: 4px; transition: background .15s; }
+  .rental-panel .edit-btn:hover { background: var(--teal-dim); } .rental-panel .delete-btn:hover { background: var(--danger-dim); }
+
+  /* Modals */
+  .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 300; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
+  .modal-overlay.active { display: flex; }
+  .add-seat-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 400; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
+  .add-seat-modal.active { display: flex; }
+  .add-seat-modal .modal-content { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 32px; max-width: 450px; width: 90%; }
+  .add-seat-modal .modal-content h2 { font-family: 'Space Grotesk', sans-serif; font-size: 22px; margin: 0 0 8px 0; color: var(--text); }
+  .add-seat-modal .modal-content .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+  .add-seat-modal .modal-content .form-group { margin-bottom: 16px; }
+  .add-seat-modal .modal-content .form-group label { display: block; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .add-seat-modal .modal-content .form-group input { width: 100%; background: var(--panel-alt); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 16px; outline: none; transition: border-color .15s; }
+  .add-seat-modal .modal-content .form-group input:focus { border-color: var(--teal); }
+  .add-seat-modal .modal-content .form-group input::placeholder { color: var(--muted); }
+  .add-seat-modal .modal-content .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+  .add-seat-modal .modal-content .modal-actions .btn { padding: 10px 24px; min-width: 100px; justify-content: center; }
+  .add-seat-modal .modal-content .error-msg { color: var(--danger); font-size: 13px; font-family: 'Inter', sans-serif; margin-top: 8px; display: none; }
+  .add-seat-modal .modal-content .error-msg.show { display: block; }
+  .delete-confirm-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 400; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
+  .delete-confirm-modal.active { display: flex; }
+  .delete-confirm-modal .modal-content { background: var(--panel); border: 1px solid var(--danger); border-radius: 16px; padding: 32px; max-width: 420px; width: 90%; }
+  .delete-confirm-modal .modal-content h2 { font-family: 'Space Grotesk', sans-serif; font-size: 22px; margin: 0 0 8px 0; color: var(--danger); display: flex; align-items: center; gap: 10px; }
+  .delete-confirm-modal .modal-content h2 svg { width: 28px; height: 28px; }
+  .delete-confirm-modal .modal-content .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+  .delete-confirm-modal .modal-content .warning-text { background: var(--danger-dim); border-radius: 8px; padding: 12px 16px; color: var(--danger); font-size: 13px; margin-bottom: 20px; border-left: 3px solid var(--danger); }
+  .delete-confirm-modal .modal-content .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+  .delete-confirm-modal .modal-content .modal-actions .btn { padding: 10px 24px; min-width: 100px; justify-content: center; }
+  .modal { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 32px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; }
+  .modal h2 { font-family: 'Space Grotesk', sans-serif; font-size: 22px; margin: 0 0 8px 0; color: var(--text); }
+  .modal .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+  .modal .form-group { margin-bottom: 16px; }
+  .modal .form-group label { display: block; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .modal .form-group select, .modal .form-group input { width: 100%; background: var(--panel-alt); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; outline: none; transition: border-color .15s; }
+  .modal .form-group select:focus, .modal .form-group input:focus { border-color: var(--teal); }
+  .modal .form-group select option { background: var(--panel); color: var(--text); }
+  .modal .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+  .modal .modal-actions .btn { padding: 10px 24px; }
+  .modal .move-info { background: var(--panel-alt); border-radius: 8px; padding: 12px 16px; margin: 12px 0 16px 0; border-left: 3px solid var(--amber); }
+  .modal .move-info .label { color: var(--muted); font-size: 11px; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.06em; }
+  .modal .move-info .value { font-size: 15px; font-weight: 600; margin-top: 2px; }
+  .modal .warning { color: var(--amber); font-size: 13px; display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 14px; background: var(--amber-dim); border-radius: 6px; }
+  .modal .warning svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .toast{ position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px); background:var(--panel-alt);border:1px solid var(--teal);color:var(--teal); padding:12px 22px;border-radius:8px;font-family:'JetBrains Mono';font-size:12.5px; opacity:0;pointer-events:none;transition:all .25s;z-index:50; display:flex;align-items:center;gap:8px; }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .empty-state{text-align:center;padding:60px 20px;color:var(--muted);font-family:'JetBrains Mono';font-size:13px;}
+
+  @media (max-width:768px) {
+    .extra-assets-panel, .rental-panel { padding: 16px; }
+    .extra-assets-panel .panel-header h2, .rental-panel .panel-header h2 { font-size: 20px; }
+    .extra-assets-toggle, .rental-toggle { padding: 12px 8px; font-size: 10px; }
+    .left-panel { width: 100%; position: relative; top: 0; max-height: 250px; }
+    .dashboard-layout { flex-direction: column; padding: 12px 16px 60px; gap: 16px; }
+    .right-panel .system-details-grid, .right-panel .extra-assets-grid { grid-template-columns: 1fr 1fr; }
+    .stats { padding: 0 16px; } .topbar{padding:14px 16px;} .search-wrap input{width:160px;}
+    .fixed-save-btn { bottom: 16px; right: 16px; padding: 12px 20px; font-size: 11px; border-radius: 10px; }
+    .fixed-save-btn svg { width: 15px; height: 15px; }
+    .modal { padding: 20px; max-width: 95%; }
+    .detail-actions { flex-direction: column; width: 100%; } .detail-actions .btn { width: 100%; justify-content: center; }
+    .add-seat-modal .modal-content { padding: 20px; } .delete-confirm-modal .modal-content { padding: 20px; }
+    .rental-panel .rental-table { display: block; overflow-x: auto; white-space: nowrap; }
+    .rental-panel .form-grid { grid-template-columns: 1fr 1fr; } .date-btn-group { flex-direction: column; }
+  }
+  @media (max-width:480px) {
+    .right-panel .system-details-grid, .right-panel .extra-assets-grid { grid-template-columns: 1fr; }
+    .rental-panel .form-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-wrapper">
+  <!-- Extra Assets Toggle Button -->
+  <button class="extra-assets-toggle" id="extraAssetsToggle" title="Open Extra Assets">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+    </svg>
+    EXTRA
+  </button>
+
+  <!-- Rental Toggle Button -->
+  <button class="rental-toggle" id="rentalToggle" title="Open Rental Details">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+      <path d="M8 12h8M8 16h6"/>
+    </svg>
+    RENTAL
+  </button>
+
+  <!-- Extra Assets Panel -->
+  <div class="extra-assets-panel" id="extraAssetsPanel">
+    <div class="panel-header">
+      <h2>Extra Assets</h2>
+      <button class="close-btn" id="closeExtraAssets">&times;</button>
+    </div>
+    <div class="panel-content">
+      <div class="panel-back-btn" id="backFromExtra">Back to Dashboard</div>
+      <div class="add-asset-form">
+        <h3>Add New Extra Asset</h3>
+        <div class="form-group">
+          <label for="assetType">Asset Type</label>
+          <select id="assetType">
+            <option value="cpu">CPU</option>
+            <option value="monitor">Monitor</option>
+            <option value="keyboard">Keyboard</option>
+            <option value="mouse">Mouse</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="assetBrand">Brand</label>
+          <select id="assetBrand"></select>
+        </div>
+        <div class="form-group">
+          <label for="assetQuantity">Quantity</label>
+          <input type="number" id="assetQuantity" placeholder="Enter quantity..." min="1" value="1">
+        </div>
+        <button class="add-btn" id="addExtraAsset">+ Add Asset</button>
+      </div>
+      <div class="section-title">Extra Assets List</div>
+      <div id="extraAssetsList"></div>
+    </div>
+  </div>
+
+  <!-- Rental Details Panel -->
+  <div class="rental-panel" id="rentalPanel">
+    <div class="panel-header">
+      <h2>Rental Details</h2>
+      <button class="close-btn" id="closeRentalPanel">&times;</button>
+    </div>
+    <div class="panel-content">
+      <div class="panel-back-btn" id="backFromRental">Back to Dashboard</div>
+      <div class="add-rental-form">
+        <h3 id="formTitle">Add New Rental Item</h3>
+        <div class="form-grid">
+          <div class="form-group" style="grid-column: span 2;">
+            <label for="rentalBatchNo">🏷️ Batch No (Important)</label>
+            <input type="text" id="rentalBatchNo" class="batch-input-highlight" placeholder="e.g., BATCH-01">
+          </div>
+          <div class="form-group">
+            <label for="rentalCpu">CPU Total</label>
+            <input type="number" id="rentalCpu" placeholder="0" min="0">
+          </div>
+          <div class="form-group">
+            <label for="rentalMonitor">Total Monitor</label>
+            <input type="number" id="rentalMonitor" placeholder="0" min="0">
+          </div>
+          <div class="form-group">
+            <label for="rentalMonitorInch">Monitor Inch</label>
+            <input type="text" id="rentalMonitorInch" placeholder='e.g., 22"'>
+          </div>
+          <div class="form-group">
+            <label for="rentalKeyboard">Total Keyboard</label>
+            <input type="number" id="rentalKeyboard" placeholder="0" min="0">
+          </div>
+          <div class="form-group">
+            <label for="rentalMouse">Total Mouse</label>
+            <input type="number" id="rentalMouse" placeholder="0" min="0">
+          </div>
+          <div class="form-group">
+            <label for="rentalCpuSpec">CPU Spec</label>
+            <input type="text" id="rentalCpuSpec" placeholder="e.g., DELL i5 7th - 250 SSD">
+          </div>
+          <div class="form-group">
+            <label for="rentalOldPcs">Old PCs</label>
+            <input type="text" id="rentalOldPcs" placeholder="Old PC Tag">
+          </div>
+          <div class="form-group">
+            <label for="rentalServiceTag">Service Tag</label>
+            <input type="text" id="rentalServiceTag" placeholder="Service Tag">
+          </div>
+          <div class="form-group">
+            <label for="rentalRequestDate">Request Date</label>
+            <div class="date-btn-group">
+              <input type="text" id="rentalRequestDate" class="typing-date-input" placeholder="DD-MM-YYYY" maxlength="10" oninput="autoFormatDate(this)">
+              <button class="today-btn" onclick="setTodayDate('rentalRequestDate')">Today</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="rentalReceivedDate">Received Date</label>
+            <div class="date-btn-group">
+              <input type="text" id="rentalReceivedDate" class="typing-date-input" placeholder="DD-MM-YYYY" maxlength="10" oninput="autoFormatDate(this)">
+              <button class="today-btn" onclick="setTodayDate('rentalReceivedDate')">Today</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="rentalProblemDate">Problem Date</label>
+            <div class="date-btn-group">
+              <input type="text" id="rentalProblemDate" class="typing-date-input" placeholder="DD-MM-YYYY" maxlength="10" oninput="autoFormatDate(this); calculateIdealDays();">
+              <button class="today-btn" onclick="setTodayDate('rentalProblemDate'); calculateIdealDays();">Today</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="rentalProblemItems">Problem Items</label>
+            <input type="text" id="rentalProblemItems" placeholder="e.g., CPU 1">
+          </div>
+          <div class="form-group">
+            <label for="rentalReplacementDate">Replacement Date</label>
+            <div class="date-btn-group">
+              <input type="text" id="rentalReplacementDate" class="typing-date-input" placeholder="DD-MM-YYYY" maxlength="10" oninput="autoFormatDate(this); calculateIdealDays();">
+              <button class="today-btn" onclick="setTodayDate('rentalReplacementDate'); calculateIdealDays();">Today</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="rentalReturnDate">Return Date</label>
+            <div class="date-btn-group">
+              <input type="text" id="rentalReturnDate" class="typing-date-input" placeholder="DD-MM-YYYY" maxlength="10" oninput="autoFormatDate(this); calculateIdealDays();">
+              <button class="today-btn" onclick="setTodayDate('rentalReturnDate'); calculateIdealDays();">Today</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="rentalIdealDays">Ideal of days not working</label>
+            <input type="text" id="rentalIdealDays" placeholder="Auto-calculated" readonly style="background-color: var(--teal-dim); color: var(--teal); font-weight: bold;">
+          </div>
+          <div class="form-group">
+            <label for="rentalRemarks">Remarks</label>
+            <input type="text" id="rentalRemarks" placeholder="Remarks...">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn ghost" id="cancelEditBtn" style="display:none;">Cancel Edit</button>
+          <button class="btn success" id="addRentalItem">+ Add Rental Item</button>
+        </div>
+      </div>
+      <div class="section-title">Rental Systems List (Grouped by Batch)</div>
+      <div id="rentalList"></div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content" id="mainContent">
+    <div class="topbar">
+      <div class="brand">
+        <span class="eyebrow">IT Infrastructure</span>
+        <h1>Asset Register</h1>
+      </div>
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="text" id="searchInput" placeholder="Search seat, name, desktop, IP...">
+      </div>
+      <button class="btn ghost" id="settingsBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        Settings
+      </button>
+      <button class="btn ghost" id="syncBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/></svg>
+        Sync
+      </button>
+      <button class="btn ghost" id="backupBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+        Backup
+      </button>
+      <button class="btn ghost" id="restoreBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        Restore
+      </button>
+      <button class="btn ghost" id="pathManagerBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+        </svg>
+        Path Manager
+      </button>
+      <button class="btn primary" id="exportBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>
+        Export Report
+      </button>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="stats" id="mainStats">
+      <div class="stat occupied"><div class="num" id="statOccupied">0</div><div class="lbl">💺 Occupied</div></div>
+      <div class="stat vacant"><div class="num" id="statVacant">0</div><div class="lbl">🪑 Vacant</div></div>
+      <div class="stat"><div class="num" id="statTotal">0</div><div class="lbl">📊 Total Seats</div></div>
+      <div class="stat rental"><div class="num" id="statRentalItems">0</div><div class="lbl">📦 Rental Items</div></div>
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="dashboard-layout">
+      <!-- Left Panel -->
+      <div class="left-panel" id="leftPanel">
+        <div class="panel-title">
+          <span>📋 Seats</span>
+          <span class="count-badge" id="seatCountBadge">0</span>
+        </div>
+        <div class="seat-list" id="seatList"></div>
+      </div>
+
+      <!-- Right Panel -->
+      <div class="right-panel">
+        <!-- User System Details -->
+        <div class="system-details-section">
+          <div class="section-title">🖥️ User System Details</div>
+          <div class="system-details-grid">
+            <div class="detail-item">
+              <div class="detail-header"><span class="detail-icon">🖥️</span><span class="detail-label">CPU Units</span><span class="detail-count" id="statCpuUnits">0</span></div>
+              <div class="detail-breakdown"><span class="office">● Office <span id="statCpuOffice">0</span></span><span class="rental">○ Rental <span id="statCpuRental">0</span></span></div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-header"><span class="detail-icon">🖥️</span><span class="detail-label">Monitors</span><span class="detail-count" id="statMonitors">0</span></div>
+              <div class="detail-breakdown"><span class="office">● Office <span id="statMonitorOffice">0</span></span><span class="rental">○ Rental <span id="statMonitorRental">0</span></span></div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-header"><span class="detail-icon">⌨️</span><span class="detail-label">Keyboards</span><span class="detail-count" id="statKeyboards">0</span></div>
+              <div class="detail-breakdown"><span class="office">● Office <span id="statKeyboardOffice">0</span></span><span class="rental">○ Rental <span id="statKeyboardRental">0</span></span></div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-header"><span class="detail-icon">🖱️</span><span class="detail-label">Mice</span><span class="detail-count" id="statMice">0</span></div>
+              <div class="detail-breakdown"><span class="office">● Office <span id="statMouseOffice">0</span></span><span class="rental">○ Rental <span id="statMouseRental">0</span></span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Extra Assets Summary -->
+        <div class="extra-assets-section">
+          <div class="section-title"><span>📦 Extra Assets (Server Room)</span></div>
+          <div class="extra-assets-grid">
+            <div class="extra-asset-item"><span class="label">🖥️ CPU Units</span><span class="count" id="statExtraCpu">0</span></div>
+            <div class="extra-asset-item"><span class="label">🖥️ Monitors</span><span class="count" id="statExtraMonitor">0</span></div>
+            <div class="extra-asset-item"><span class="label">⌨️ Keyboards</span><span class="count" id="statExtraKeyboard">0</span></div>
+            <div class="extra-asset-item"><span class="label">🖱️ Mice</span><span class="count" id="statExtraMouse">0</span></div>
+          </div>
+        </div>
+
+        <!-- Seat Details -->
+        <div class="seat-details-section">
+          <div id="rowGroups" class="row-groups hidden"></div>
+          <div class="detail" id="detailView">
+            <div class="empty-state">💺 Select a seat from the left panel to view details</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal (For Web API Keys) -->
+<div class="modal-overlay" id="settingsModal" style="z-index: 500;">
+  <div class="modal">
+    <h2>Cloud Settings</h2>
+    <div class="subtitle">Enter your JSONBin API Key and Bin ID to enable cloud sync. This is stored only in your browser.</div>
+    <div class="form-group">
+      <label for="webApiKey">JSONBin API Key</label>
+      <input type="password" id="webApiKey" placeholder="Paste your Master Key here...">
+    </div>
+    <div class="form-group">
+      <label for="webBinId">JSONBin Bin ID</label>
+      <input type="text" id="webBinId" placeholder="e.g., 6a957178da38895dfe262297">
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="closeSettingsBtn">Cancel</button>
+      <button class="btn primary" id="saveSettingsBtn">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Seat Modal -->
+<div class="add-seat-modal" id="addSeatModal">
+  <div class="modal-content">
+    <h2>Add New Seat</h2>
+    <div class="subtitle">Enter the new seating ID</div>
+    <div class="form-group">
+      <label for="newSeatId">Seating ID</label>
+      <input type="text" id="newSeatId" placeholder="e.g., K1, B3, Z5" autofocus>
+      <div class="error-msg" id="seatError">This seating ID already exists. Please use a different ID.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="cancelAddSeat">Cancel</button>
+      <button class="btn primary" id="confirmAddSeat">Create Seat</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="delete-confirm-modal" id="deleteConfirmModal">
+  <div class="modal-content">
+    <h2>Delete Seat</h2>
+    <div class="subtitle">This action cannot be undone.</div>
+    <div class="warning-text">Are you sure you want to delete seat <strong id="deleteSeatIdDisplay">A1</strong>?</div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="cancelDelete">Cancel</button>
+      <button class="btn danger" id="confirmDelete">Delete Permanently</button>
+    </div>
+  </div>
+</div>
+
+<!-- Move User Modal -->
+<div class="modal-overlay" id="moveModal">
+  <div class="modal">
+    <h2>Move User</h2>
+    <div class="subtitle">Transfer all user details and system information to another seat</div>
+    <div class="move-info" id="sourceInfo">
+      <div class="label">Source Seat</div>
+      <div class="value" id="sourceSeatDisplay">-</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px;" id="sourceEmployeeDisplay"></div>
+    </div>
+    <div class="form-group">
+      <label for="targetSeatSelect">Select Destination Seat</label>
+      <select id="targetSeatSelect"><option value="">Loading seats...</option></select>
+    </div>
+    <div class="warning">This will overwrite any existing data at the destination seat.</div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="cancelMoveBtn">Cancel</button>
+      <button class="btn success" id="confirmMoveBtn">Move User</button>
+    </div>
+  </div>
+</div>
+
+<!-- Path Manager Modal -->
+<div class="modal-overlay" id="pathManagerModal" style="z-index: 500;">
+  <div class="modal" style="max-width: 900px; width: 95%;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--line); padding-bottom: 15px; margin-bottom: 20px;">
+      <h2 style="margin:0; font-family: 'Space Grotesk', sans-serif;">🗂️ Backup Path Manager</h2>
+      <button class="close-btn" onclick="closePathManager()" style="background:none;border:none;color:var(--muted);font-size:28px;cursor:pointer;">&times;</button>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap; align-items: center;">
+      <select id="pmCategoryFilter" style="background:var(--panel-alt);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:8px;font-family:'Inter';font-size:13px; min-width: 160px;" onchange="refreshPMTable()"><option value="All Categories">All Categories</option></select>
+      <input type="text" id="pmSearch" placeholder="Search paths..." style="flex:1;background:var(--panel-alt);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:8px 12px;font-family:'Inter';font-size:13px;" oninput="refreshPMTable()">
+    </div>
+    <div style="overflow-y:auto; max-height: 400px; border:1px solid var(--line); border-radius:8px; margin-top: 10px;">
+      <table style="width:100%; border-collapse:collapse; background:var(--panel); text-align: center;">
+        <thead><tr style="background: var(--panel-alt);"><th style="padding: 12px;">Category</th><th style="padding: 12px;">Backup Name</th><th style="padding: 12px;">Folder Path</th><th style="padding: 12px;">Actions</th></tr></thead>
+        <tbody id="pmTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Path Modal (Web version, no browse) -->
+<div class="modal-overlay" id="pmFormModal" style="z-index: 600;">
+  <div class="modal" style="max-width: 500px; width: 90%;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--line); padding-bottom: 10px; margin-bottom: 20px;">
+      <h2 id="pmFormTitle" style="margin:0; font-family: 'Space Grotesk', sans-serif;">Add New Path</h2>
+      <button class="close-btn" onclick="closePMForm()" style="background:none;border:none;color:var(--muted);font-size:28px;cursor:pointer;">&times;</button>
+    </div>
+    <div style="margin-bottom: 15px;">
+      <label style="display:block; font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--muted); text-transform:uppercase; margin-bottom:5px;">Category</label>
+      <select id="pmFormCategory" style="width:100%; background:var(--panel-alt);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:10px;font-family:'Inter';font-size:14px;"><option value="S3D">S3D</option><option value="PDS">PDS</option><option value="SPPID">SPPID</option><option value="SPI">SPI</option><option value="Other">Other</option></select>
+    </div>
+    <div style="margin-bottom: 15px;">
+      <label style="display:block; font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--muted); text-transform:uppercase; margin-bottom:5px;">Backup Name</label>
+      <input type="text" id="pmFormName" placeholder="e.g., Daily Backups" style="width:100%; background:var(--panel-alt);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:10px;font-family:'Inter';font-size:14px;">
+    </div>
+    <div style="margin-bottom: 20px;">
+      <label style="display:block; font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--muted); text-transform:uppercase; margin-bottom:5px;">Folder Path</label>
+      <input type="text" id="pmFormPath" placeholder="e.g., //server/folder" style="width:100%; background:var(--panel-alt);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:10px;font-family:'Inter';font-size:14px;">
+    </div>
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+      <button class="btn ghost" onclick="closePMForm()">Cancel</button>
+      <button class="btn primary" onclick="savePMForm()">Save Path</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ASSET_DATA = [];
+const FIELDS = [
+  {key:"seating_id", label:"Seating ID", section:"Basic", type:"text"},
+  {key:"seating_availability", label:"Status", section:"Basic", type:"select", options:["Occupied","Vacant"]},
+  {key:"employee_name", label:"Employee Name", section:"Employee Info", type:"text"},
+  {key:"employee_id", label:"Employee ID", section:"Employee Info", type:"text"},
+  {key:"employment_type", label:"Employment Type", section:"Employee Info", type:"text"},
+  {key:"intercom_number", label:"Intercom Number", section:"Employee Info", type:"text"},
+  {key:"desktop_name", label:"Desktop Name", section:"System Information", type:"text"},
+  {key:"ip_address", label:"IP Address", section:"System Information", type:"text"},
+  {key:"processor", label:"Processor", section:"System Information", type:"text"},
+  {key:"ram", label:"RAM", section:"System Information", type:"text"},
+  {key:"graphics_card", label:"Graphics Card", section:"System Information", type:"text"},
+  {key:"graphics_card_speed", label:"Graphics Card Speed", section:"System Information", type:"text"},
+  {key:"ssd", label:"SSD", section:"System Information", type:"text"},
+  {key:"hard_disk", label:"Hard Disk", section:"System Information", type:"text"},
+  {key:"keyboard_brand", label:"Keyboard Brand", section:"System Information", type:"text"},
+  {key:"mouse_brand", label:"Mouse Brand", section:"System Information", type:"text"},
+  {key:"cpu_cabinet_brand", label:"CPU Cabinet Brand", section:"CPU & Monitor Information", type:"text"},
+  {key:"cpu_cabinet_id", label:"CPU Cabinet ID", section:"CPU & Monitor Information", type:"text"},
+  {key:"monitor1_brand", label:"Monitor 1 Brand", section:"CPU & Monitor Information", type:"text"},
+  {key:"monitor1_id", label:"Monitor 1 ID", section:"CPU & Monitor Information", type:"text"},
+  {key:"monitor1_inches", label:"Monitor 1 Inches", section:"CPU & Monitor Information", type:"text"},
+  {key:"monitor2_brand", label:"Monitor 2 Brand", section:"CPU & Monitor Information", type:"text"},
+  {key:"monitor2_id", label:"Monitor 2 ID", section:"CPU & Monitor Information", type:"text"},
+  {key:"monitor2_inches", label:"Monitor 2 Inches", section:"CPU & Monitor Information", type:"text"},
+  {key:"ownership_cpu", label:"CPU Ownership", section:"Rental / Office Information", type:"select", options:["OFFICE","RENTAL","OWN"]},
+  {key:"ownership_monitor1", label:"Monitor 1 Ownership", section:"Rental / Office Information", type:"select", options:["OFFICE","RENTAL","OWN"]},
+  {key:"ownership_monitor2", label:"Monitor 2 Ownership", section:"Rental / Office Information", type:"select", options:["OFFICE","RENTAL","OWN"]},
+  {key:"ownership_keyboard", label:"Keyboard Ownership", section:"Rental / Office Information", type:"select", options:["OFFICE","RENTAL","OWN"]},
+  {key:"ownership_mouse", label:"Mouse Ownership", section:"Rental / Office Information", type:"select", options:["OFFICE","RENTAL","OWN"]}
+];
+const COLUMN_LABELS = FIELDS.map(f=>f.label);
+const SECTIONS = [...new Set(FIELDS.map(f=>f.section))];
+const BRAND_OPTIONS = {
+  cpu: ['ACER', 'DELL', 'ZEBRONICS', 'COOLER MASTER', 'POWER X'],
+  monitor: ['ACER', 'DELL', 'ZEBSTER', 'ZEBRONICS', 'THINK VISION', 'HP', 'KRYSTAA', 'VIEWSONIC', 'LENOVO', 'LG'],
+  keyboard: ['DELL', 'LOGITECH', 'HP', 'PORTRONIC', 'ZEBRONICS'],
+  mouse: ['DELL', 'LOGITECH', 'PORTRONICS', 'ZEBRONICS']
+};
+const ASSET_LABELS = { cpu: 'CPU Units', monitor: 'Monitors', keyboard: 'Keyboards', mouse: 'Mice' };
+
+let extraAssets = { cpu: [], monitor: [], keyboard: [], mouse: [] };
+let rentalItems = [];
+let data = JSON.parse(JSON.stringify(ASSET_DATA));
+let currentSeat = null;
+let isDataLoaded = false;
+let moveSourceSeat = null;
+let seatToDelete = null;
+let lastEditedSeat = null;
+let editingRentalIndex = -1;
+
+let pmData = [];
+let pmEditingIndex = -1;
+const PM_DEFAULT_CATEGORIES = ["S3D", "PDS", "SPPID", "SPI", "Other"];
+
+// ============================================================
+// WEB SETTINGS (API Key & Bin ID)
+// ============================================================
+function loadSettings() {
+  const apiKey = localStorage.getItem('webApiKey');
+  const binId = localStorage.getItem('webBinId');
+  return { apiKey, binId };
+}
+
+function saveSettings(apiKey, binId) {
+  localStorage.setItem('webApiKey', apiKey);
+  localStorage.setItem('webBinId', binId);
+}
+
+async function apiRequest(method, path, body = null) {
+  const { apiKey, binId } = loadSettings();
+  if (!apiKey || !binId) {
+    showToast('❌ Please configure settings first!');
+    return null;
+  }
+  const url = `https://api.jsonbin.io/v3/b/${binId}${path}`;
+  try {
+    const response = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': apiKey
+      },
+      body: body ? JSON.stringify(body) : null
+    });
+    if (!response.ok) throw new Error('API Error: ' + response.status);
+    if (method === 'GET') {
+      const result = await response.json();
+      return result.record;
+    }
+    return true;
+  } catch (e) {
+    console.error('Cloud sync failed:', e);
+    return null;
+  }
+}
+
+async function loadSavedData() {
+  const cloudData = await apiRequest('GET', '/latest');
+  if (cloudData) {
+    if (cloudData.assets) data = cloudData.assets;
+    if (cloudData.extraAssets) extraAssets = cloudData.extraAssets;
+    if (cloudData.rentalItems) rentalItems = cloudData.rentalItems;
+    if (cloudData.paths) pmData = cloudData.paths;
+  }
+}
+
+async function autoSyncToCloud() {
+  const allData = {
+    assets: data,
+    extraAssets: extraAssets,
+    rentalItems: rentalItems,
+    paths: pmData
+  };
+  await apiRequest('PUT', '', allData);
+}
+
+// ============================================================
+// AUTO-FORMAT DATE & IDEAL DAYS
+// ============================================================
+function autoFormatDate(input) {
+  let value = input.value.replace(/\D/g, '');
+  if (value.length > 8) value = value.substring(0, 8);
+  if (value.length > 4) input.value = value.substring(0, 2) + '-' + value.substring(2, 4) + '-' + value.substring(4, 8);
+  else if (value.length > 2) input.value = value.substring(0, 2) + '-' + value.substring(2, 4);
+  else input.value = value;
+}
+
+function calculateIdealDays() {
+  const problemDateStr = document.getElementById('rentalProblemDate').value;
+  const replacementDateStr = document.getElementById('rentalReplacementDate').value;
+  const returnDateStr = document.getElementById('rentalReturnDate').value;
+  const endDateStr = replacementDateStr || returnDateStr;
+  if (problemDateStr && endDateStr) {
+    const parts1 = problemDateStr.split('-');
+    const parts2 = endDateStr.split('-');
+    const startDate = new Date(parts1[2], parts1[1] - 1, parts1[0]);
+    const endDate = new Date(parts2[2], parts2[1] - 1, parts2[0]);
+    if (startDate <= endDate) {
+      const diffTime = endDate.getTime() - startDate.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      document.getElementById('rentalIdealDays').value = diffDays;
+    } else {
+      document.getElementById('rentalIdealDays').value = '';
+    }
+  } else {
+    document.getElementById('rentalIdealDays').value = '';
+  }
+}
+
+function setTodayDate(inputId) {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  document.getElementById(inputId).value = `${day}-${month}-${year}`;
+}
+
+// ============================================================
+// PATH MANAGER
+// ============================================================
+function normalizePath(path) {
+  if (!path) return "";
+  path = path.trim().replace(/\//g, "\\");
+  if (path.startsWith("\\") && !path.startsWith("\\\\")) path = "\\" + path;
+  return path;
+}
+
+function getAllCategories() {
+  let categories = PM_DEFAULT_CATEGORIES.slice();
+  pmData.forEach(item => { if (item.category && !categories.includes(item.category)) categories.push(item.category); });
+  return categories;
+}
+
+function openPathManager() {
+  document.getElementById('pathManagerModal').classList.add('active');
+  const catFilter = document.getElementById('pmCategoryFilter');
+  const cats = ['All Categories', ...getAllCategories()];
+  catFilter.innerHTML = '';
+  cats.forEach(cat => { const opt = document.createElement('option'); opt.value = cat; opt.textContent = cat; catFilter.appendChild(opt); });
+  catFilter.value = 'All Categories';
+  refreshPMTable();
+}
+
+function closePathManager() { document.getElementById('pathManagerModal').classList.remove('active'); }
+
+function refreshPMTable() {
+  const tbody = document.getElementById('pmTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  const selectedCat = document.getElementById('pmCategoryFilter').value;
+  const search = document.getElementById('pmSearch').value.toLowerCase().trim();
+  let count = 0;
+  pmData.forEach((item, index) => {
+    let category = item.category || 'Other';
+    let name = item.name || '';
+    let path = normalizePath(item.path || '');
+    if (selectedCat !== 'All Categories' && category !== selectedCat) return;
+    if (search) {
+      const searchContent = (category + " " + name + " " + path).toLowerCase();
+      if (!searchContent.includes(search)) return;
+    }
+    const row = document.createElement('tr');
+    row.style.borderBottom = '1px solid var(--line)';
+    row.innerHTML = `<td style="padding: 10px;">${category}</td><td style="padding: 10px; text-align:left;">${name}</td><td style="padding: 10px; text-align:left; word-break: break-all;">${path}</td><td style="padding: 10px;"><div style="display:flex;gap:6px;justify-content:center;"><button onclick="editPMItem(${index})" title="Edit" style="background:none;border:none;cursor:pointer;font-size:16px;">✏️</button><button onclick="deletePMItem(${index})" title="Delete" style="background:none;border:none;cursor:pointer;font-size:16px;">🗑️</button></div></td>`;
+    tbody.appendChild(row);
+    count++;
+  });
+  if (count === 0) tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">No paths found.</td></tr>`;
+}
+
+function openAddPath() {
+  pmEditingIndex = -1;
+  document.getElementById('pmFormTitle').textContent = "Add New Path";
+  document.getElementById('pmFormName').value = '';
+  document.getElementById('pmFormPath').value = '';
+  document.getElementById('pmFormCategory').value = "S3D";
+  document.getElementById('pmFormModal').classList.add('active');
+}
+
+function editPMItem(index) {
+  pmEditingIndex = index;
+  const item = pmData[index];
+  document.getElementById('pmFormTitle').textContent = "Edit Path";
+  document.getElementById('pmFormName').value = item.name || '';
+  document.getElementById('pmFormPath').value = item.path || '';
+  document.getElementById('pmFormCategory').value = item.category || "Other";
+  document.getElementById('pmFormModal').classList.add('active');
+}
+
+function closePMForm() { document.getElementById('pmFormModal').classList.remove('active'); }
+
+function savePMForm() {
+  const category = document.getElementById('pmFormCategory').value;
+  const name = document.getElementById('pmFormName').value.trim();
+  const path = normalizePath(document.getElementById('pmFormPath').value);
+  if (!name) return alert("Backup Name is required!");
+  if (!path) return alert("Folder Path is required!");
+  if (pmEditingIndex > -1) { pmData[pmEditingIndex] = { category, name, path }; pmEditingIndex = -1; }
+  else { pmData.push({ category, name, path }); }
+  closePMForm();
+  refreshPMTable();
+  autoSyncToCloud();
+}
+
+function deletePMItem(index) {
+  if (!confirm(`Delete this path?\n\n${pmData[index].name}`)) return;
+  pmData.splice(index, 1);
+  refreshPMTable();
+  autoSyncToCloud();
+}
+
+// ============================================================
+// RENDER FUNCTIONS
+// ============================================================
+const rowGroupsEl = document.getElementById('rowGroups');
+const detailEl = document.getElementById('detailView');
+const searchInput = document.getElementById('searchInput');
+const seatListEl = document.getElementById('seatList');
+const seatCountBadge = document.getElementById('seatCountBadge');
+
+function renderStats() {
+  const occ = data.filter(d=>d.seating_availability==='Occupied').length;
+  document.getElementById('statOccupied').textContent = occ;
+  document.getElementById('statVacant').textContent = data.length - occ;
+  document.getElementById('statTotal').textContent = data.length;
+  seatCountBadge.textContent = data.length;
+  document.getElementById('statRentalItems').textContent = rentalItems.length;
+  
+  let cpuCount = 0, monitorCount = 0, keyboardCount = 0, mouseCount = 0;
+  let cpuOffice = 0, cpuRental = 0, monitorOffice = 0, monitorRental = 0, keyboardOffice = 0, keyboardRental = 0, mouseOffice = 0, mouseRental = 0;
+  
+  data.forEach(d => {
+    if (d.ownership_cpu) { cpuCount++; if (d.ownership_cpu === 'OFFICE') cpuOffice++; else if (d.ownership_cpu === 'RENTAL') cpuRental++; }
+    if (d.ownership_monitor1) { monitorCount++; if (d.ownership_monitor1 === 'OFFICE') monitorOffice++; else if (d.ownership_monitor1 === 'RENTAL') monitorRental++; }
+    if (d.ownership_monitor2) { monitorCount++; if (d.ownership_monitor2 === 'OFFICE') monitorOffice++; else if (d.ownership_monitor2 === 'RENTAL') monitorRental++; }
+    if (d.ownership_keyboard) { keyboardCount++; if (d.ownership_keyboard === 'OFFICE') keyboardOffice++; else if (d.ownership_keyboard === 'RENTAL') keyboardRental++; }
+    if (d.ownership_mouse) { mouseCount++; if (d.ownership_mouse === 'OFFICE') mouseOffice++; else if (d.ownership_mouse === 'RENTAL') mouseRental++; }
+  });
+  
+  document.getElementById('statCpuUnits').textContent = cpuCount;
+  document.getElementById('statMonitors').textContent = monitorCount;
+  document.getElementById('statKeyboards').textContent = keyboardCount;
+  document.getElementById('statMice').textContent = mouseCount;
+  document.getElementById('statCpuOffice').textContent = cpuOffice;
+  document.getElementById('statCpuRental').textContent = cpuRental;
+  document.getElementById('statMonitorOffice').textContent = monitorOffice;
+  document.getElementById('statMonitorRental').textContent = monitorRental;
+  document.getElementById('statKeyboardOffice').textContent = keyboardOffice;
+  document.getElementById('statKeyboardRental').textContent = keyboardRental;
+  document.getElementById('statMouseOffice').textContent = mouseOffice;
+  document.getElementById('statMouseRental').textContent = mouseRental;
+  
+  let extraCpu = 0, extraMonitor = 0, extraKeyboard = 0, extraMouse = 0;
+  if (extraAssets.cpu) extraCpu = extraAssets.cpu.reduce((sum, item) => sum + item.quantity, 0);
+  if (extraAssets.monitor) extraMonitor = extraAssets.monitor.reduce((sum, item) => sum + item.quantity, 0);
+  if (extraAssets.keyboard) extraKeyboard = extraAssets.keyboard.reduce((sum, item) => sum + item.quantity, 0);
+  if (extraAssets.mouse) extraMouse = extraAssets.mouse.reduce((sum, item) => sum + item.quantity, 0);
+  document.getElementById('statExtraCpu').textContent = extraCpu;
+  document.getElementById('statExtraMonitor').textContent = extraMonitor;
+  document.getElementById('statExtraKeyboard').textContent = extraKeyboard;
+  document.getElementById('statExtraMouse').textContent = extraMouse;
+  
+  renderSeatList();
+  renderRentalItems();
+}
+
+function renderSeatList(filterText, highlightSeat) {
+  const searchTerm = (filterText || '').trim().toLowerCase();
+  let filtered = data;
+  
+  if (searchTerm) {
+    filtered = data.filter(d => {
+      const hay = [d.seating_id, d.employee_name, d.desktop_name, d.ip_address, d.employee_id, d.processor]
+        .map(v => (v || '').toString().toLowerCase()).join(' ');
+      return hay.includes(searchTerm);
+    });
+  }
+  
+  filtered.sort((a, b) => {
+    const aMatch = a.seating_id.match(/^([A-Z]+)(\d+)$/);
+    const bMatch = b.seating_id.match(/^([A-Z]+)(\d+)$/);
+    if (aMatch && bMatch) {
+      const letterCompare = aMatch[1].localeCompare(bMatch[1]);
+      if (letterCompare !== 0) return letterCompare;
+      return parseInt(aMatch[2]) - parseInt(bMatch[2]);
+    }
+    return a.seating_id.localeCompare(b.seating_id);
+  });
+  
+  if (filtered.length === 0) {
+    seatListEl.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:20px;text-align:center;">No seats found</div>`;
+    return;
+  }
+  
+  let html = '';
+  filtered.forEach(d => {
+    const isOccupied = d.seating_availability === 'Occupied';
+    const isHighlight = highlightSeat && d.seating_id === highlightSeat;
+    html += `
+      <div class="seat-list-item ${isOccupied ? 'occupied' : ''} ${isHighlight ? 'highlight-item' : ''}" data-seat-id="${d.seating_id}" onclick="openDetail('${d.seating_id}')">
+        <span class="status-dot ${isOccupied ? 'occupied' : 'vacant'} ${isHighlight ? 'highlight-dot' : ''}"></span>
+        <span class="seat-icon">💺</span>
+        <span class="seat-id">${d.seating_id}</span>
+        <div class="seat-info">
+          <div class="name">${d.employee_name || 'Vacant'}</div>
+          <div class="desktop">${d.desktop_name || '—'}</div>
+        </div>
+      </div>
+    `;
+  });
+  
+  seatListEl.innerHTML = html;
+}
+
+function renderRentalItems() {
+  const container = document.getElementById('rentalList');
+  if (!container) return;
+  
+  let totalCpu = 0, totalMonitor = 0, totalKeyboard = 0, totalMouse = 0;
+  rentalItems.forEach(item => {
+    totalCpu += parseInt(item.cpu) || 0;
+    totalMonitor += parseInt(item.monitor) || 0;
+    totalKeyboard += parseInt(item.keyboard) || 0;
+    totalMouse += parseInt(item.mouse) || 0;
+  });
+
+  if (rentalItems.length === 0) {
+    container.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:20px;text-align:center;">No rental items available.</div>`;
+    return;
+  }
+
+  const groups = {};
+  rentalItems.forEach(item => {
+    const batch = item.batchNo || 'NO BATCH';
+    if (!groups[batch]) groups[batch] = [];
+    groups[batch].push(item);
+  });
+
+  let html = `
+    <table class="rental-table">
+      <thead>
+        <tr>
+          <th>Batch No</th><th>S.No</th><th>CPU Total</th><th>Monitor</th><th>Monitor Inch</th><th>Keyboard</th><th>Mouse</th><th>CPU Spec</th><th>Old PCs</th><th>Service Tag</th><th>Request Date</th><th>Received Date</th><th>Problem Date</th><th>Problem Items</th><th>Replacement Date</th><th>Return Date</th><th>Ideal Days</th><th>Remarks</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  let index = 0;
+  Object.keys(groups).sort().forEach(batch => {
+    html += `<tr class="batch-group-row"><td colspan="19">🏷️ ${batch}</td></tr>`;
+    
+    groups[batch].forEach(item => {
+      index++;
+      html += `
+        <tr>
+          <td style="color: var(--rental-color); font-weight: 700;">${item.batchNo || '—'}</td>
+          <td>${index}</td>
+          <td>${item.cpu || 0}</td>
+          <td>${item.monitor || 0}</td>
+          <td>${item.monitorInch || '—'}</td>
+          <td>${item.keyboard || 0}</td>
+          <td>${item.mouse || 0}</td>
+          <td style="text-align:left;">${item.cpuSpec || '—'}</td>
+          <td>${item.oldPcs || '—'}</td>
+          <td>${item.serviceTag || '—'}</td>
+          <td>${item.requestDate || '—'}</td>
+          <td>${item.receivedDate || '—'}</td>
+          <td>${item.problemDate || '—'}</td>
+          <td>${item.problemItems || '—'}</td>
+          <td>${item.replacementDate || '—'}</td>
+          <td>${item.returnDate || '—'}</td>
+          <td>${item.idealDays || 0}</td>
+          <td style="text-align:left;">${item.remarks || '—'}</td>
+          <td>
+            <div class="actions-cell">
+              <button class="edit-btn" onclick="editRentalItem(${index - 1})" title="Edit">✏️</button>
+              <button class="delete-btn" onclick="removeRentalItem(${index - 1})" title="Delete">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    });
+  });
+
+  html += `
+      </tbody>
+      <tfoot>
+        <tr class="total-row">
+          <td colspan="2">TOTAL</td>
+          <td>${totalCpu}</td>
+          <td>${totalMonitor}</td>
+          <td>—</td>
+          <td>${totalKeyboard}</td>
+          <td>${totalMouse}</td>
+          <td colspan="11"></td>
+        </tr>
+      </tfoot>
+    </table>
+  `;
+  
+  container.innerHTML = html;
+}
+
+function addRentalItem() {
+  const batchNo = document.getElementById('rentalBatchNo').value.trim();
+  const cpu = document.getElementById('rentalCpu').value.trim();
+  const monitor = document.getElementById('rentalMonitor').value.trim();
+  const monitorInch = document.getElementById('rentalMonitorInch').value.trim();
+  const keyboard = document.getElementById('rentalKeyboard').value.trim();
+  const mouse = document.getElementById('rentalMouse').value.trim();
+  const cpuSpec = document.getElementById('rentalCpuSpec').value.trim();
+  const oldPcs = document.getElementById('rentalOldPcs').value.trim();
+  const serviceTag = document.getElementById('rentalServiceTag').value.trim();
+  const requestDate = document.getElementById('rentalRequestDate').value.trim();
+  const receivedDate = document.getElementById('rentalReceivedDate').value.trim();
+  const problemDate = document.getElementById('rentalProblemDate').value.trim();
+  const problemItems = document.getElementById('rentalProblemItems').value.trim();
+  const replacementDate = document.getElementById('rentalReplacementDate').value.trim();
+  const returnDate = document.getElementById('rentalReturnDate').value.trim();
+  const idealDays = document.getElementById('rentalIdealDays').value || '0';
+  const remarks = document.getElementById('rentalRemarks').value.trim();
+
+  if (!batchNo) { showToast('❌ Please enter a Batch No!'); return; }
+  if (!cpuSpec && !serviceTag) { showToast('Please enter at least CPU Spec or Service Tag'); return; }
+
+  const newItem = {
+    batchNo, cpu, monitor, monitorInch, keyboard, mouse, cpuSpec, oldPcs, serviceTag,
+    requestDate, receivedDate, problemDate, problemItems, replacementDate, returnDate, idealDays, remarks
+  };
+
+  if (editingRentalIndex > -1) {
+    rentalItems[editingRentalIndex] = newItem;
+    editingRentalIndex = -1;
+    document.getElementById('formTitle').textContent = 'Add New Rental Item';
+    document.getElementById('addRentalItem').innerHTML = '+ Add Rental Item';
+    document.getElementById('cancelEditBtn').style.display = 'none';
+    showToast('✅ Rental item updated successfully!');
+  } else {
+    rentalItems.push(newItem);
+    showToast('✅ Rental item added successfully!');
+  }
+
+  clearRentalForm();
+  autoSyncToCloud();
+  renderStats();
+}
+
+function clearRentalForm() {
+  document.getElementById('rentalBatchNo').value = '';
+  document.getElementById('rentalCpu').value = '';
+  document.getElementById('rentalMonitor').value = '';
+  document.getElementById('rentalMonitorInch').value = '';
+  document.getElementById('rentalKeyboard').value = '';
+  document.getElementById('rentalMouse').value = '';
+  document.getElementById('rentalCpuSpec').value = '';
+  document.getElementById('rentalOldPcs').value = '';
+  document.getElementById('rentalServiceTag').value = '';
+  document.getElementById('rentalRequestDate').value = '';
+  document.getElementById('rentalReceivedDate').value = '';
+  document.getElementById('rentalProblemDate').value = '';
+  document.getElementById('rentalProblemItems').value = '';
+  document.getElementById('rentalReplacementDate').value = '';
+  document.getElementById('rentalReturnDate').value = '';
+  document.getElementById('rentalIdealDays').value = '';
+  document.getElementById('rentalRemarks').value = '';
+}
+
+function editRentalItem(index) {
+  editingRentalIndex = index;
+  const item = rentalItems[index];
+  document.getElementById('rentalBatchNo').value = item.batchNo || '';
+  document.getElementById('rentalCpu').value = item.cpu || '';
+  document.getElementById('rentalMonitor').value = item.monitor || '';
+  document.getElementById('rentalMonitorInch').value = item.monitorInch || '';
+  document.getElementById('rentalKeyboard').value = item.keyboard || '';
+  document.getElementById('rentalMouse').value = item.mouse || '';
+  document.getElementById('rentalCpuSpec').value = item.cpuSpec || '';
+  document.getElementById('rentalOldPcs').value = item.oldPcs || '';
+  document.getElementById('rentalServiceTag').value = item.serviceTag || '';
+  document.getElementById('rentalRequestDate').value = item.requestDate || '';
+  document.getElementById('rentalReceivedDate').value = item.receivedDate || '';
+  document.getElementById('rentalProblemDate').value = item.problemDate || '';
+  document.getElementById('rentalProblemItems').value = item.problemItems || '';
+  document.getElementById('rentalReplacementDate').value = item.replacementDate || '';
+  document.getElementById('rentalReturnDate').value = item.returnDate || '';
+  document.getElementById('rentalIdealDays').value = item.idealDays || '';
+  document.getElementById('rentalRemarks').value = item.remarks || '';
+  document.getElementById('formTitle').textContent = 'Edit Rental Item';
+  document.getElementById('addRentalItem').innerHTML = 'Update Rental Item';
+  document.getElementById('cancelEditBtn').style.display = 'inline-flex';
+  calculateIdealDays();
+  document.querySelector('.add-rental-form').scrollIntoView({ behavior: 'smooth' });
+}
+
+function removeRentalItem(index) {
+  if (!confirm(`Remove this rental item?`)) return;
+  rentalItems.splice(index, 1);
+  if (editingRentalIndex === index) cancelEdit();
+  autoSyncToCloud();
+  renderStats();
+  showToast('🗑️ Rental item removed');
+}
+
+// ============================================================
+// EXTRA ASSETS LOGIC
+// ============================================================
+function toggleExtraAssets() {
+  const panel = document.getElementById('extraAssetsPanel');
+  const mainContent = document.getElementById('mainContent');
+  const isOpen = panel.classList.toggle('open');
+  if (isOpen) {
+    mainContent.classList.add('hidden');
+    renderExtraAssets();
+    const rentalPanel = document.getElementById('rentalPanel');
+    if (rentalPanel.classList.contains('open')) rentalPanel.classList.remove('open');
+  } else {
+    mainContent.classList.remove('hidden');
+  }
+}
+
+function closeExtraAssets() {
+  document.getElementById('extraAssetsPanel').classList.remove('open');
+  document.getElementById('mainContent').classList.remove('hidden');
+}
+
+function toggleRentalPanel() {
+  const panel = document.getElementById('rentalPanel');
+  const mainContent = document.getElementById('mainContent');
+  const isOpen = panel.classList.toggle('open');
+  if (isOpen) {
+    mainContent.classList.add('hidden');
+    renderRentalItems();
+    const extraPanel = document.getElementById('extraAssetsPanel');
+    if (extraPanel.classList.contains('open')) extraPanel.classList.remove('open');
+  } else {
+    mainContent.classList.remove('hidden');
+  }
+}
+
+function closeRentalPanel() {
+  document.getElementById('rentalPanel').classList.remove('open');
+  document.getElementById('mainContent').classList.remove('hidden');
+}
+
+function renderExtraAssets() {
+  const container = document.getElementById('extraAssetsList');
+  let html = '';
+  const categories = ['cpu', 'monitor', 'keyboard', 'mouse'];
+  const categoryIcons = { cpu: '🖥️', monitor: '🖥️', keyboard: '⌨️', mouse: '🖱️' };
+  categories.forEach(category => {
+    const items = extraAssets[category] || [];
+    const brandMap = {};
+    items.forEach(item => {
+      if (brandMap[item.brand]) brandMap[item.brand] += item.quantity;
+      else brandMap[item.brand] = item.quantity;
+    });
+    const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+    html += `<div class="asset-category"><div class="cat-header"><h4>${categoryIcons[category] || ''} ${ASSET_LABELS[category]}</h4><span class="count">${totalItems}</span></div>`;
+    if (items.length === 0) html += `<div style="color:var(--muted);font-size:12px;padding:6px 0;text-align:center;">No items</div>`;
+    else {
+      Object.keys(brandMap).sort().forEach(brand => {
+        html += `<div class="asset-item"><div class="item-detail">${brand} <span class="spec">× ${brandMap[brand]}</span></div><button class="remove-btn" onclick="removeExtraAsset('${category}', '${brand}')" title="Remove all ${brand} items">✕</button></div>`;
+      });
+    }
+    html += `</div>`;
+  });
+  container.innerHTML = html;
+  let total = 0;
+  Object.values(extraAssets).forEach(arr => { arr.forEach(item => total += item.quantity); });
+  document.getElementById('statExtraAssets').textContent = total;
+}
+
+function addExtraAsset() {
+  const type = document.getElementById('assetType').value;
+  const brand = document.getElementById('assetBrand').value.trim();
+  const quantity = parseInt(document.getElementById('assetQuantity').value) || 1;
+  if (!brand) { showToast('Please select a brand'); return; }
+  if (quantity < 1) { showToast('Quantity must be at least 1'); return; }
+  if (!extraAssets[type]) extraAssets[type] = [];
+  const existingItem = extraAssets[type].find(item => item.brand === brand);
+  if (existingItem) existingItem.quantity += quantity;
+  else extraAssets[type].push({ brand, quantity });
+  document.getElementById('assetQuantity').value = 1;
+  autoSyncToCloud();
+  renderExtraAssets();
+  renderStats();
+  showToast(`✅ Added ${quantity} × ${brand} ${ASSET_LABELS[type]}`);
+}
+
+function removeExtraAsset(category, brand) {
+  if (!confirm(`Remove all ${brand} items from ${ASSET_LABELS[category]}?`)) return;
+  if (extraAssets[category]) extraAssets[category] = extraAssets[category].filter(item => item.brand !== brand);
+  autoSyncToCloud();
+  renderExtraAssets();
+  renderStats();
+  showToast(`Removed all ${brand} items`);
+}
+
+// ============================================================
+// SEAT DETAILS
+// ============================================================
+function openDetail(seatingId) {
+  lastEditedSeat = seatingId;
+  currentSeat = seatingId;
+  const record = data.find(d=>d.seating_id===seatingId);
+  if(!record) return;
+  renderSeatList(searchInput.value, seatingId);
+  const listItems = seatListEl.querySelectorAll('.seat-list-item');
+  listItems.forEach(item => { if (item.dataset.seatId === seatingId) item.scrollIntoView({ block: 'center', behavior: 'smooth' }); });
+  rowGroupsEl.classList.add('hidden');
+  detailEl.classList.remove('active');
+  detailEl.innerHTML = '';
+  let sectionsHtml = '';
+  SECTIONS.forEach(sec=>{
+    const fields = FIELDS.filter(f=>f.section===sec && f.key!=='seating_id');
+    if(fields.length===0) return;
+    sectionsHtml += `<div class="section"><h3>${sec}</h3><div class="field-grid">`;
+    fields.forEach(f=>{
+      const val = record[f.key] ?? '';
+      if(f.type==='select'){
+        sectionsHtml += `<div class="field"><label>${f.label}</label><select data-key="${f.key}"><option value="">—</option>${f.options.map(o=>`<option value="${o}" ${val===o?'selected':''}>${o}</option>`).join('')}</select></div>`;
+      } else {
+        sectionsHtml += `<div class="field"><label>${f.label}</label><input type="text" data-key="${f.key}" value="${(val+'').replace(/"/g,'&quot;')}"></div>`;
+      }
+    });
+    sectionsHtml += `</div></div>`;
+  });
+  const isOccupied = record.seating_availability === 'Occupied';
+  detailEl.innerHTML = `
+    <div class="back-link" id="backBtn">Back to dashboard</div>
+    <div class="detail-head">
+      <div><div class="tag">💺 Seat ${record.seating_id} &middot; SI No. ${record.si_no}</div><h2>${record.employee_name || 'Vacant seat'}</h2></div>
+      <div class="detail-actions">
+        ${isOccupied ? `<button class="btn success" id="moveBtn">Move User</button>` : ''}
+        <button class="btn danger" id="vacateBtn">Vacate Seat</button>
+        <button class="btn danger" id="deleteBtn">Delete Seat</button>
+      </div>
+    </div>
+    <div class="detail-wrapper">${sectionsHtml}</div>
+  `;
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'fixed-save-btn';
+  saveBtn.id = 'fixedSaveBtn';
+  saveBtn.innerHTML = 'Save Changes';
+  saveBtn.addEventListener('click', saveDetail);
+  document.body.appendChild(saveBtn);
+  document.getElementById('backBtn').addEventListener('click', closeDetail);
+  document.getElementById('vacateBtn').addEventListener('click', vacateDetail);
+  document.getElementById('deleteBtn').addEventListener('click', () => openDeleteModal(seatingId));
+  if (isOccupied) document.getElementById('moveBtn').addEventListener('click', () => openMoveModal(seatingId));
+  detailEl.classList.add('active');
+}
+
+function closeDetail() {
+  detailEl.classList.remove('active');
+  rowGroupsEl.classList.remove('hidden');
+  currentSeat = null;
+  const fixedBtn = document.getElementById('fixedSaveBtn');
+  if (fixedBtn) fixedBtn.remove();
+  detailEl.innerHTML = `<div class="empty-state">💺 Select a seat from the left panel to view details</div>`;
+  renderSeatList(searchInput.value);
+}
+
+async function saveDetail() {
+  const record = data.find(d => d.seating_id === currentSeat);
+  if (!record) { showToast('❌ Error: Seat not found'); return; }
+  detailEl.querySelectorAll('[data-key]').forEach(el => {
+    const key = el.getAttribute('data-key');
+    let val = el.value.trim();
+    record[key] = val === '' ? null : val;
+  });
+  await autoSyncToCloud();
+  renderStats();
+  renderSeatList(searchInput.value);
+  showToast('✅ Seat ' + currentSeat + ' saved successfully!');
+  const fixedBtn = document.getElementById('fixedSaveBtn');
+  if (fixedBtn) fixedBtn.remove();
+  closeDetail();
+}
+
+async function vacateDetail() {
+  if(!confirm('Clear employee and system details for seat ' + currentSeat + ' and mark it Vacant?')) return;
+  const record = data.find(d=>d.seating_id===currentSeat);
+  if(!record) return;
+  FIELDS.forEach(f=>{
+    if(f.key==='seating_id') return;
+    if(f.key==='seating_availability'){ record[f.key]='Vacant'; return; }
+    record[f.key] = null;
+  });
+  await autoSyncToCloud();
+  renderStats();
+  showToast('🪑 Seat ' + currentSeat + ' vacated');
+  const fixedBtn = document.getElementById('fixedSaveBtn');
+  if (fixedBtn) fixedBtn.remove();
+  closeDetail();
+}
+
+function openDeleteModal(seatId) {
+  seatToDelete = seatId;
+  document.getElementById('deleteSeatIdDisplay').textContent = seatId;
+  document.getElementById('deleteConfirmModal').classList.add('active');
+}
+
+function closeDeleteModal() {
+  document.getElementById('deleteConfirmModal').classList.remove('active');
+  seatToDelete = null;
+}
+
+async function confirmDeleteSeat() {
+  if (!seatToDelete) return;
+  const record = data.find(d => d.seating_id === seatToDelete);
+  if (!record) { showToast('Error: Seat not found'); closeDeleteModal(); return; }
+  const index = data.indexOf(record);
+  if (index > -1) data.splice(index, 1);
+  await autoSyncToCloud();
+  renderStats();
+  renderSeatList(searchInput.value);
+  showToast('🗑️ Seat ' + seatToDelete + ' deleted successfully!');
+  closeDeleteModal();
+  if (currentSeat === seatToDelete) closeDetail();
+}
+
+function openAddSeatModal() {
+  const modal = document.getElementById('addSeatModal');
+  const input = document.getElementById('newSeatId');
+  const error = document.getElementById('seatError');
+  input.value = '';
+  error.classList.remove('show');
+  modal.classList.add('active');
+  setTimeout(() => input.focus(), 100);
+}
+
+function closeAddSeatModal() {
+  document.getElementById('addSeatModal').classList.remove('active');
+  document.getElementById('seatError').classList.remove('show');
+}
+
+async function confirmAddSeat() {
+  const input = document.getElementById('newSeatId');
+  const error = document.getElementById('seatError');
+  const seatId = input.value.trim();
+  if (!seatId) { error.textContent = 'Please enter a seating ID.'; error.classList.add('show'); return; }
+  const trimmed = seatId.toUpperCase();
+  if (data.find(d => d.seating_id === trimmed)) { error.textContent = '❌ Seating ID "' + trimmed + '" already exists. Please use a different ID.'; error.classList.add('show'); return; }
+  const maxSi = data.reduce((max, d) => Math.max(max, d.si_no || 0), 0);
+  const newSeat = { si_no: maxSi + 1, seating_id: trimmed, seating_availability: 'Occupied' };
+  FIELDS.forEach(f => { if (!(f.key in newSeat)) newSeat[f.key] = null; });
+  data.push(newSeat);
+  closeAddSeatModal();
+  await autoSyncToCloud();
+  renderStats();
+  renderSeatList(searchInput.value);
+  showToast('✅ New seat ' + trimmed + ' created successfully!');
+  openDetail(trimmed);
+}
+
+function updateBrandOptions() {
+  const type = document.getElementById('assetType').value;
+  const brandSelect = document.getElementById('assetBrand');
+  const brands = BRAND_OPTIONS[type] || [];
+  brandSelect.innerHTML = '<option value="">Select Brand...</option>';
+  brands.forEach(brand => { const option = document.createElement('option'); option.value = brand; option.textContent = brand; brandSelect.appendChild(option); });
+}
+
+function openMoveModal(sourceSeatId) {
+  moveSourceSeat = sourceSeatId;
+  const sourceRecord = data.find(d => d.seating_id === sourceSeatId);
+  if (!sourceRecord) return;
+  document.getElementById('sourceSeatDisplay').textContent = sourceSeatId;
+  document.getElementById('sourceEmployeeDisplay').textContent = sourceRecord.employee_name ? `${sourceRecord.employee_name} • ${sourceRecord.desktop_name || 'No desktop'}` : 'No employee assigned';
+  const select = document.getElementById('targetSeatSelect');
+  select.innerHTML = '<option value="">Select destination seat...</option>';
+  const availableSeats = data.filter(d => d.seating_id !== sourceSeatId).sort((a, b) => {
+    const aMatch = a.seating_id.match(/^([A-Z]+)(\d+)$/);
+    const bMatch = b.seating_id.match(/^([A-Z]+)(\d+)$/);
+    if (aMatch && bMatch) { const letterCompare = aMatch[1].localeCompare(bMatch[1]); if (letterCompare !== 0) return letterCompare; return parseInt(aMatch[2]) - parseInt(bMatch[2]); }
+    return a.seating_id.localeCompare(b.seating_id);
+  });
+  availableSeats.forEach(seat => {
+    const option = document.createElement('option');
+    option.value = seat.seating_id;
+    const status = seat.seating_availability === 'Occupied' ? '🔴 Occupied' : '🟢 Vacant';
+    const name = seat.employee_name ? ` - ${seat.employee_name}` : '';
+    option.textContent = `${seat.seating_id} ${name} (${status})`;
+    select.appendChild(option);
+  });
+  document.getElementById('moveModal').classList.add('active');
+}
+
+function closeMoveModal() {
+  document.getElementById('moveModal').classList.remove('active');
+  moveSourceSeat = null;
+}
+
+async function confirmMove() {
+  const targetSeatId = document.getElementById('targetSeatSelect').value;
+  if (!targetSeatId) { showToast('Please select a destination seat'); return; }
+  const sourceRecord = data.find(d => d.seating_id === moveSourceSeat);
+  const targetRecord = data.find(d => d.seating_id === targetSeatId);
+  if (!sourceRecord || !targetRecord) { showToast('Error: Seat not found'); return; }
+  const confirmMsg = `Move user "${sourceRecord.employee_name || 'Unnamed'}" from ${moveSourceSeat} to ${targetSeatId}?\n\nThis will overwrite any existing data at ${targetSeatId}.`;
+  if (!confirm(confirmMsg)) return;
+  const sourceData = {};
+  FIELDS.forEach(f => { if (f.key !== 'seating_id' && f.key !== 'si_no') sourceData[f.key] = sourceRecord[f.key] || null; });
+  FIELDS.forEach(f => { if (f.key !== 'seating_id' && f.key !== 'si_no') targetRecord[f.key] = sourceData[f.key] || null; });
+  targetRecord.seating_availability = 'Occupied';
+  FIELDS.forEach(f => { if (f.key === 'seating_id') return; if (f.key === 'seating_availability') { sourceRecord[f.key] = 'Vacant'; return; } sourceRecord[f.key] = null; });
+  await autoSyncToCloud();
+  renderStats();
+  renderSeatList(searchInput.value);
+  showToast(`✅ User moved from ${moveSourceSeat} to ${targetSeatId} successfully!`);
+  closeMoveModal();
+  closeDetail();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+async function exportReport() {
+  try {
+    showToast('📊 Generating report...');
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Asset Register';
+    workbook.created = new Date();
+
+    function formatSheet(sheet, minWidth = 12, maxWidth = 50) {
+      sheet.eachRow({ includeEmpty: false }, (row) => {
+        row.eachCell({ includeEmpty: true }, (cell) => {
+          cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        });
+      });
+      sheet.columns.forEach((column) => {
+        let maxLength = 0;
+        column.eachCell({ includeEmpty: true }, (cell) => {
+          if (cell.value !== null && cell.value !== undefined) {
+            const length = cell.value.toString().length;
+            if (length > maxLength) maxLength = length;
+          }
+        });
+        const colWidth = Math.max(minWidth, Math.min(maxLength + 2, maxWidth));
+        column.width = colWidth;
+      });
+    }
+
+    // SHEET 1: Asset Details
+    const ws1 = workbook.addWorksheet('Asset Details');
+    const columns = COLUMN_LABELS.map(label => ({ header: label, key: label, width: Math.min(Math.max(label.length + 8, 15), 45) }));
+    ws1.columns = columns;
+    data.slice().sort((a, b) => (a.si_no || 0) - (b.si_no || 0)).forEach(d => {
+      const row = {};
+      FIELDS.forEach(f => { row[f.label] = d[f.key] ?? ''; });
+      ws1.addRow(row);
+    });
+    const headerRow = ws1.getRow(1);
+    headerRow.eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: 'FF1A1305' }, size: 11 };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0D040' } };
+    });
+    headerRow.height = 28;
+    formatSheet(ws1, 15, 50);
+
+    // SHEET 2: Rental Systems (S.No BEFORE Batch)
+    const ws2 = workbook.addWorksheet('Rental Systems');
+    const rentalHeaders = ['S.No', 'Batch No', 'CPU Total', 'Total Monitor', 'Monitor Inch', 'Total Keyboard', 'Total Mouse', 'CPU Spec', 'Old PCs', 'Service Tag', 'Request Date', 'Received Date', 'Problem Date', 'Problem Items', 'Replacement Date', 'Return Date', 'Ideal of days not working', 'Remarks'];
+    ws2.addRow(rentalHeaders);
+    const rentalHeaderRow = ws2.getRow(1);
+    rentalHeaderRow.eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: 'FF1A1305' }, size: 11 };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0D040' } };
+    });
+    rentalHeaderRow.height = 28;
+    let totalRentalCpu = 0, totalRentalMonitor = 0, totalRentalKeyboard = 0, totalRentalMouse = 0;
+    let globalIndex = 0;
+    const groups = {};
+    rentalItems.forEach(item => { const batch = item.batchNo || 'NO BATCH'; if (!groups[batch]) groups[batch] = []; groups[batch].push(item); });
+    let currentRow = 2;
+    Object.keys(groups).sort().forEach(batch => {
+      ws2.addRow(['', `🏷️ ${batch}`, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']);
+      const batchRow = ws2.getRow(currentRow);
+      batchRow.eachCell((cell) => { cell.font = { bold: true, size: 12, color: { argb: 'FFF39C12' } }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF5C4010' } }; });
+      batchRow.height = 24;
+      currentRow++;
+      groups[batch].forEach(item => {
+        globalIndex++;
+        totalRentalCpu += parseInt(item.cpu) || 0;
+        totalRentalMonitor += parseInt(item.monitor) || 0;
+        totalRentalKeyboard += parseInt(item.keyboard) || 0;
+        totalRentalMouse += parseInt(item.mouse) || 0;
+        ws2.addRow([
+          globalIndex, item.batchNo || '', item.cpu || 0, item.monitor || 0, item.monitorInch || '', item.keyboard || 0, item.mouse || 0,
+          item.cpuSpec || '', item.oldPcs || '', item.serviceTag || '', item.requestDate || '', item.receivedDate || '', item.problemDate || '',
+          item.problemItems || '', item.replacementDate || '', item.returnDate || '', item.idealDays || 0, item.remarks || ''
+        ]);
+        currentRow++;
+      });
+    });
+    ws2.addRow(['TOTAL', '', totalRentalCpu, totalRentalMonitor, '', totalRentalKeyboard, totalRentalMouse, '', '', '', '', '', '', '', '', '', '', '']);
+    const totalRow = ws2.getRow(currentRow);
+    totalRow.eachCell((cell) => { cell.font = { bold: true, size: 12, color: { argb: 'FF4FD1C5' } }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1C3A37' } }; });
+    totalRow.height = 26;
+    formatSheet(ws2, 12, 50);
+
+    // SHEET 3: Extra Assets
+    const ws3 = workbook.addWorksheet('Extra Assets');
+    ws3.addRow(['EXTRA ASSETS (SERVER ROOM)']);
+    ws3.getCell('A1').font = { bold: true, size: 14, color: { argb: 'FF9B59B6' } };
+    ws3.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3D2A4A' } };
+    ws3.getRow(1).height = 30;
+    ws3.addRow(['Category', 'Brand', 'Quantity']);
+    const extraHeaderRow = ws3.getRow(2);
+    extraHeaderRow.eachCell((cell) => { cell.font = { bold: true, size: 12, color: { argb: 'FF1A1305' } }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE3A542' } }; });
+    let extraRow = 3;
+    const extraCategories = ['cpu', 'monitor', 'keyboard', 'mouse'];
+    let totalExtra = 0;
+    extraCategories.forEach(cat => {
+      const items = extraAssets[cat] || [];
+      let catTotal = 0;
+      items.forEach(item => {
+        catTotal += item.quantity;
+        totalExtra += item.quantity;
+        ws3.addRow([ASSET_LABELS[cat] || cat, item.brand || '', item.quantity || 1]);
+        extraRow++;
+      });
+      if (items.length > 0) {
+        ws3.addRow([`${ASSET_LABELS[cat] || cat} Total`, '', catTotal]);
+        const catTotalRow = ws3.getRow(extraRow);
+        catTotalRow.eachCell((cell) => { cell.font = { bold: true, size: 11, color: { argb: 'FF9B59B6' } }; });
+        extraRow++;
+        ws3.addRow(['', '', '']);
+        extraRow++;
+      }
+    });
+    ws3.addRow(['GRAND TOTAL', '', totalExtra]);
+    const grandTotalRow = ws3.getRow(extraRow);
+    grandTotalRow.eachCell((cell) => { cell.font = { bold: true, size: 13, color: { argb: 'FF4FD1C5' } }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1C3A37' } }; });
+    formatSheet(ws3, 15, 40);
+
+    // SHEET 4: Summary
+    const ws4 = workbook.addWorksheet('Summary');
+    let cpuOffice = 0, cpuRental = 0, monitorOffice = 0, monitorRental = 0, keyboardOffice = 0, keyboardRental = 0, mouseOffice = 0, mouseRental = 0;
+    let cpuTotal = 0, monitorTotal = 0, keyboardTotal = 0, mouseTotal = 0;
+    data.forEach(d => {
+      if (d.ownership_cpu) { cpuTotal++; if (d.ownership_cpu === 'OFFICE') cpuOffice++; else if (d.ownership_cpu === 'RENTAL') cpuRental++; }
+      if (d.ownership_monitor1) { monitorTotal++; if (d.ownership_monitor1 === 'OFFICE') monitorOffice++; else if (d.ownership_monitor1 === 'RENTAL') monitorRental++; }
+      if (d.ownership_monitor2) { monitorTotal++; if (d.ownership_monitor2 === 'OFFICE') monitorOffice++; else if (d.ownership_monitor2 === 'RENTAL') monitorRental++; }
+      if (d.ownership_keyboard) { keyboardTotal++; if (d.ownership_keyboard === 'OFFICE') keyboardOffice++; else if (d.ownership_keyboard === 'RENTAL') keyboardRental++; }
+      if (d.ownership_mouse) { mouseTotal++; if (d.ownership_mouse === 'OFFICE') mouseOffice++; else if (d.ownership_mouse === 'RENTAL') mouseRental++; }
+    });
+    const summaryData = [
+      ['ASSET REGISTER SUMMARY REPORT'], [],
+      ['SEAT STATISTICS'], ['Category', 'Count'],
+      ['Total Seats', data.length], ['Occupied Seats', data.filter(d => d.seating_availability === 'Occupied').length], ['Vacant Seats', data.filter(d => d.seating_availability === 'Vacant').length],
+      [], ['USER SYSTEM DETAILS'], ['Category', 'Office', 'Rental', 'Total'],
+      ['CPU Units', cpuOffice, cpuRental, cpuTotal], ['Monitors', monitorOffice, monitorRental, monitorTotal], ['Keyboards', keyboardOffice, keyboardRental, keyboardTotal], ['Mice', mouseOffice, mouseRental, mouseTotal],
+      [], ['Report Generated:', new Date().toLocaleString()]
+    ];
+    summaryData.forEach(rowData => { ws4.addRow(rowData); });
+    const titleCell = ws4.getCell('A1');
+    titleCell.font = { bold: true, size: 16, color: { argb: 'FF1A1305' } };
+    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0D040' } };
+    ws4.getRow(1).height = 35;
+    const sectionHeaderRows = [3, 9];
+    sectionHeaderRows.forEach(rowNum => {
+      const cell = ws4.getCell(`A${rowNum}`);
+      if (cell && cell.value) { cell.font = { bold: true, size: 12, color: { argb: 'FF1A1305' } }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0D040' } }; ws4.getRow(rowNum).height = 28; }
+    });
+    formatSheet(ws4, 15, 40);
+
+    // SAVE FILE
+    const today = new Date().toISOString().slice(0, 10);
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    if (typeof saveAs === 'function') saveAs(blob, `system_assets_report_${today}.xlsx`);
+    else {
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `system_assets_report_${today}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+    showToast('📊 Report exported successfully!');
+  } catch (error) {
+    console.error('Export error:', error);
+    showToast('❌ Error generating report. Please try again.');
+  }
+}
+
+// ============================================================
+// EVENT LISTENERS
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+  // Settings Modal
+  const settingsBtn = document.getElementById('settingsBtn');
+  settingsBtn.addEventListener('click', () => {
+    const settings = loadSettings();
+    document.getElementById('webApiKey').value = settings.apiKey || '';
+    document.getElementById('webBinId').value = settings.binId || '';
+    document.getElementById('settingsModal').classList.add('active');
+  });
+  document.getElementById('closeSettingsBtn').addEventListener('click', () => document.getElementById('settingsModal').classList.remove('active'));
+  document.getElementById('saveSettingsBtn').addEventListener('click', () => {
+    const apiKey = document.getElementById('webApiKey').value.trim();
+    const binId = document.getElementById('webBinId').value.trim();
+    if (!apiKey || !binId) { showToast('Please enter both API Key and Bin ID'); return; }
+    saveSettings(apiKey, binId);
+    document.getElementById('settingsModal').classList.remove('active');
+    showToast('✅ Settings saved! Pulling data...');
+    loadSavedData().then(() => {
+      renderStats();
+      renderSeatList('');
+      renderExtraAssets();
+      renderRentalItems();
+      showToast('✅ Data loaded from cloud!');
+    });
+  });
+  document.getElementById('settingsModal').addEventListener('click', (e) => { if (e.target === document.getElementById('settingsModal')) document.getElementById('settingsModal').classList.remove('active'); });
+
+  searchInput.addEventListener('input', function() { renderSeatList(this.value); });
+  document.getElementById('exportBtn').addEventListener('click', exportReport);
+  document.getElementById('addSeatBtn').addEventListener('click', openAddSeatModal);
+  document.getElementById('cancelAddSeat').addEventListener('click', closeAddSeatModal);
+  document.getElementById('confirmAddSeat').addEventListener('click', confirmAddSeat);
+  document.getElementById('addSeatModal').addEventListener('click', (e) => { if (e.target === this) closeAddSeatModal(); });
+  document.getElementById('cancelDelete').addEventListener('click', closeDeleteModal);
+  document.getElementById('confirmDelete').addEventListener('click', confirmDeleteSeat);
+  document.getElementById('deleteConfirmModal').addEventListener('click', (e) => { if (e.target === this) closeDeleteModal(); });
+  document.getElementById('extraAssetsToggle').addEventListener('click', toggleExtraAssets);
+  document.getElementById('closeExtraAssets').addEventListener('click', closeExtraAssets);
+  document.getElementById('backFromExtra').addEventListener('click', closeExtraAssets);
+  document.getElementById('rentalToggle').addEventListener('click', toggleRentalPanel);
+  document.getElementById('closeRentalPanel').addEventListener('click', closeRentalPanel);
+  document.getElementById('backFromRental').addEventListener('click', closeRentalPanel);
+  document.getElementById('assetType').addEventListener('change', updateBrandOptions);
+  updateBrandOptions();
+  document.getElementById('addExtraAsset').addEventListener('click', addExtraAsset);
+  document.getElementById('assetQuantity').addEventListener('keypress', (e) => { if (e.key === 'Enter') addExtraAsset(); });
+  document.getElementById('addRentalItem').addEventListener('click', addRentalItem);
+  document.getElementById('cancelEditBtn').addEventListener('click', cancelEdit);
+  document.getElementById('rentalBatchNo').addEventListener('keypress', (e) => { if (e.key === 'Enter') addRentalItem(); });
+
+  // Sync
+  document.getElementById('syncBtn').addEventListener('click', async () => {
+    showToast('☁️ Syncing with cloud...');
+    await loadSavedData();
+    renderStats();
+    renderSeatList('');
+    renderExtraAssets();
+    renderRentalItems();
+    showToast('✅ Data loaded from cloud!');
+  });
+
+  // Backup
+  document.getElementById('backupBtn').addEventListener('click', async () => {
+    const allData = { assets: data, extraAssets: extraAssets, rentalItems: rentalItems, paths: pmData };
+    const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `asset_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('✅ Backup downloaded!');
+  });
+
+  // Restore
+  document.getElementById('restoreBtn').addEventListener('click', () => {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.json';
+    fileInput.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        if (!confirm('⚠️ Are you sure? This will overwrite ALL current data.')) return;
+        const restoredData = JSON.parse(ev.target.result);
+        if (restoredData.assets) data = restoredData.assets;
+        if (restoredData.extraAssets) extraAssets = restoredData.extraAssets;
+        if (restoredData.rentalItems) rentalItems = restoredData.rentalItems;
+        if (restoredData.paths) pmData = restoredData.paths;
+        await autoSyncToCloud();
+        renderStats();
+        renderSeatList('');
+        renderExtraAssets();
+        renderRentalItems();
+        showToast('✅ Data restored and synced!');
+      };
+      reader.readAsText(file);
+    };
+    fileInput.click();
+  });
+
+  // Path Manager
+  document.getElementById('pathManagerBtn').addEventListener('click', openPathManager);
+  document.getElementById('pathManagerModal').addEventListener('click', (e) => { if (e.target === document.getElementById('pathManagerModal')) closePathManager(); });
+  document.getElementById('pmFormModal').addEventListener('click', (e) => { if (e.target === document.getElementById('pmFormModal')) closePMForm(); });
+
+  // Move Modal
+  document.getElementById('cancelMoveBtn').addEventListener('click', closeMoveModal);
+  document.getElementById('confirmMoveBtn').addEventListener('click', confirmMove);
+  document.getElementById('moveModal').addEventListener('click', (e) => { if (e.target === document.getElementById('moveModal')) closeMoveModal(); });
+
+  // Initialize
+  loadSavedData().then(() => {
+    renderStats();
+    renderSeatList('');
+    renderExtraAssets();
+    renderRentalItems();
+  });
+});
+</script>
+
+</body>
+</html>
