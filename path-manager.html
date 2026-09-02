@@ -6,6 +6,181 @@
 <title>Path Manager - Asset Register</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<!-- Firebase Config -->
+<script src="assets/firebase-config.js"></script>
+
+<!-- Shared Theme Controller -->
+<script src="assets/theme.js"></script>
+
+<style>
+    .rental-form {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 30px;
+    }
+    .rental-form h3 {
+        font-family: 'Space Grotesk';
+        color: var(--text);
+        margin: 0 0 16px 0;
+    }
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    .form-group {
+        margin-bottom: 0;
+    }
+    .form-group label {
+        display: block;
+        font-family: 'JetBrains Mono';
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 4px;
+    }
+    .form-group input, .form-group select {
+        width: 100%;
+        padding: 8px 12px;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        color: var(--text);
+        font-family: 'Inter';
+        font-size: 13px;
+    }
+    .form-group input:focus, .form-group select:focus {
+        outline: none;
+        border-color: var(--teal);
+    }
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-family: 'Inter';
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 13px;
+    }
+    .btn.primary {
+        background: var(--teal);
+        color: #fff;
+    }
+    .btn.primary:hover {
+        background: var(--teal-hover);
+        transform: translateY(-2px);
+    }
+    .btn.ghost {
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--line);
+    }
+    .btn.ghost:hover {
+        border-color: var(--teal);
+    }
+    .btn.danger {
+        background: rgba(231, 76, 60, 0.15);
+        color: #e74c3c;
+        border: 1px solid rgba(231, 76, 60, 0.3);
+    }
+    .btn.danger:hover {
+        background: #e74c3c;
+        color: #fff;
+    }
+    .table-container {
+        overflow-x: auto;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+    thead {
+        background: var(--bg);
+        border-bottom: 2px solid var(--line);
+    }
+    th {
+        padding: 12px 16px;
+        text-align: left;
+        font-family: 'JetBrains Mono';
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--muted);
+        white-space: nowrap;
+    }
+    td {
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--line);
+        color: var(--text);
+    }
+    tr:hover {
+        background: var(--panel-alt);
+    }
+    .nav-item {
+        display: block;
+        padding: 10px 16px;
+        border-radius: 8px;
+        text-decoration: none;
+        color: var(--text);
+        font-family: 'Inter';
+        font-weight: 500;
+        transition: all 0.2s;
+        margin-bottom: 4px;
+    }
+    .nav-item:hover {
+        background: var(--panel-alt);
+    }
+    .nav-item.active {
+        background: var(--teal-dim);
+        color: var(--teal);
+    }
+    .theme-toggle {
+        background: var(--panel-alt);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px 16px;
+        color: var(--text);
+        cursor: pointer;
+        font-family: 'Inter';
+        font-weight: 500;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .theme-toggle:hover {
+        border-color: var(--teal);
+    }
+    .logout-btn {
+        background: rgba(231, 76, 60, 0.15);
+        border: 1px solid rgba(231, 76, 60, 0.3);
+        border-radius: 8px;
+        padding: 10px 16px;
+        color: #e74c3c;
+        cursor: pointer;
+        font-family: 'Inter';
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+    .logout-btn:hover {
+        background: #e74c3c;
+        color: #fff;
+    }
+</style>
 </head>
 <body>
 <div class="app-container" id="appContainer" style="display:none;">
@@ -17,13 +192,17 @@
       <a href="rentals.html" class="nav-item">🚚 Rental Details</a>
       <a href="extra-assets.html" class="nav-item">📦 Extra Assets</a>
       <a href="path-manager.html" class="nav-item active">🗂️ Path Manager</a>
-      <button class="theme-toggle" onclick="toggleTheme()">🌗 Theme</button>
-      <button class="logout-btn" onclick="logout()">Logout</button>
+      <a href="settings.html" class="nav-item">⚙️ Settings</a>
+      <button class="theme-toggle" onclick="toggleTheme()" style="margin-top:10px; width:100%;">
+        <span>☀️</span>
+        <span id="themeLabel">Light Mode</span>
+      </button>
+      <button class="logout-btn" onclick="logout()" style="margin-top:10px; width:100%;">Logout</button>
     </div>
   </div>
 
   <div class="main-content">
-    <div class="topbar"><h2>Path Manager</h2></div>
+    <div class="topbar"><h2>🗂️ Path Manager</h2></div>
     <div class="rental-form">
       <h3>Add / Edit Path</h3>
       <div class="form-grid">
@@ -40,77 +219,111 @@
   </div>
 </div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyAcBaKxlFC4Yqg4SNdg8l0lbo9dFCNTtJU",
-    authDomain: "asset-register-website.firebaseapp.com",
-    projectId: "asset-register-website",
-    storageBucket: "asset-register-website.firebasestorage.app",
-    messagingSenderId: "921107638281",
-    appId: "1:921107638281:web:ec5b50383bd4f6feea70d8",
-    measurementId: "G-9DKFJ4T5XY"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+<script>
+  // Firebase is already initialized from CDN scripts
+  // auth and db are available from firebase-config.js
 
   let pmData = [], editingPM = -1;
 
-  window.toggleTheme = function(){ document.body.classList.toggle('light-mode'); };
-  window.logout = async function(){ await signOut(auth); window.location.href = "login.html"; };
+  window.logout = async function() { 
+    await auth.signOut(); 
+    window.location.href = "login.html"; 
+  };
 
   async function loadPaths() {
-    const querySnapshot = await getDocs(collection(db, 'paths'));
-    pmData = [];
-    querySnapshot.forEach((doc) => { pmData.push({ id: doc.id, ...doc.data() }); });
-    renderPM();
+    try {
+      const querySnapshot = await db.collection('paths').get();
+      pmData = [];
+      querySnapshot.forEach((doc) => { 
+        pmData.push({ id: doc.id, ...doc.data() }); 
+      });
+      renderPM();
+      console.log('✅ Loaded', pmData.length, 'paths');
+    } catch (error) {
+      console.error('❌ Error loading paths:', error);
+      alert('Failed to load paths');
+    }
   }
 
   function renderPM() {
-    const tbody = document.getElementById('pmTableBody'); tbody.innerHTML = '';
+    const tbody = document.getElementById('pmTableBody'); 
+    tbody.innerHTML = '';
+    if (pmData.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--muted);">No paths found. Add one above!</td></tr>`;
+      return;
+    }
     pmData.forEach((p, i) => {
-      tbody.innerHTML += `<tr><td>${p.category}</td><td>${p.name}</td><td>${p.path}</td><td><button class="btn" onclick="editPM(${i})">✏️</button> <button class="btn danger" onclick="deletePM(${i})">🗑️</button></td></tr>`;
+      tbody.innerHTML += `<tr><td>${p.category || ''}</td><td>${p.name || ''}</td><td style="font-family:'JetBrains Mono';font-size:12px;">${p.path || ''}</td><td><button class="btn primary" style="padding:4px 12px;font-size:12px;" onclick="editPM(${i})">✏️</button> <button class="btn danger" style="padding:4px 12px;font-size:12px;" onclick="deletePM(${i})">🗑️</button></td></tr>`;
     });
   }
 
-  function clearPM() { document.getElementById('pmName').value = ''; document.getElementById('pmPath').value = ''; document.getElementById('pmAddBtn').innerText = '+ Add Path'; document.getElementById('pmCancelBtn').style.display = 'none'; editingPM = -1; }
+  function clearPM() { 
+    document.getElementById('pmName').value = ''; 
+    document.getElementById('pmPath').value = ''; 
+    document.getElementById('pmAddBtn').innerText = '+ Add Path'; 
+    document.getElementById('pmCancelBtn').style.display = 'none'; 
+    editingPM = -1; 
+  }
 
   window.addPM = async function() {
-    const d = { category: document.getElementById('pmCategory').value, name: document.getElementById('pmName').value, path: document.getElementById('pmPath').value };
-    if (!d.name || !d.path) return alert("Please fill all fields");
-    if (editingPM > -1) {
-      await setDoc(doc(db, 'paths', pmData[editingPM].id), d);
-    } else {
-      await setDoc(doc(db, 'paths', Date.now().toString()), d);
+    const d = { 
+      category: document.getElementById('pmCategory').value, 
+      name: document.getElementById('pmName').value, 
+      path: document.getElementById('pmPath').value 
+    };
+    if (!d.name || !d.path) {
+      alert("Please fill all fields");
+      return;
     }
-    clearPM(); loadPaths(); alert("Path saved!");
+    
+    try {
+      if (editingPM > -1) {
+        await db.collection('paths').doc(pmData[editingPM].id).set(d);
+      } else {
+        await db.collection('paths').add(d);
+      }
+      clearPM(); 
+      loadPaths(); 
+      alert("Path saved!");
+    } catch (error) {
+      console.error('❌ Error saving path:', error);
+      alert('Failed to save path');
+    }
   };
 
   window.editPM = function(i) {
-    editingPM = i; const p = pmData[i];
-    document.getElementById('pmCategory').value = p.category;
-    document.getElementById('pmName').value = p.name;
-    document.getElementById('pmPath').value = p.path;
-    document.getElementById('pmAddBtn').innerText = 'Update Path'; document.getElementById('pmCancelBtn').style.display = 'inline-flex';
+    editingPM = i; 
+    const p = pmData[i];
+    document.getElementById('pmCategory').value = p.category || 'Other';
+    document.getElementById('pmName').value = p.name || '';
+    document.getElementById('pmPath').value = p.path || '';
+    document.getElementById('pmAddBtn').innerText = 'Update Path'; 
+    document.getElementById('pmCancelBtn').style.display = 'inline-flex';
   };
 
   window.deletePM = async function(i) {
     if (!confirm('Delete this path?')) return;
-    await deleteDoc(doc(db, 'paths', pmData[i].id));
-    loadPaths();
+    try {
+      await db.collection('paths').doc(pmData[i].id).delete();
+      loadPaths();
+    } catch (error) {
+      console.error('❌ Error deleting path:', error);
+      alert('Failed to delete path');
+    }
   };
 
   document.getElementById('pmAddBtn').onclick = window.addPM;
   document.getElementById('pmCancelBtn').onclick = clearPM;
 
-  onAuthStateChanged(auth, user => {
-    if (user) { document.getElementById('appContainer').style.display = 'flex'; loadPaths(); }
-    else { window.location.href = "login.html"; }
+  // Auth check
+  auth.onAuthStateChanged(user => {
+    if (user) { 
+      document.getElementById('appContainer').style.display = 'flex'; 
+      loadPaths(); 
+    }
+    else { 
+      window.location.href = "login.html"; 
+    }
   });
 </script>
 </body>
