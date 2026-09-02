@@ -53,14 +53,15 @@ function loadTheme() {
 function updateThemeButtons(mode) {
     // Update all theme toggle buttons on the page
     document.querySelectorAll('.theme-toggle, .theme-btn').forEach(btn => {
-        const icon = btn.querySelector('.theme-icon');
-        const label = btn.querySelector('.theme-label');
-        
-        if (icon) {
-            icon.textContent = mode === 'light' ? '🌙' : '☀️';
-        }
+        const label = btn.querySelector('span:last-child');
         if (label) {
             label.textContent = mode === 'light' ? 'Dark Mode' : 'Light Mode';
+        }
+        
+        // Update SVG icon if present
+        const svg = btn.querySelector('svg');
+        if (svg) {
+            // You can change SVG color or icon here if needed
         }
     });
 }
