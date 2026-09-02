@@ -1,15 +1,18 @@
 // assets/firebase-config.js
-// Your Firebase configuration from Firebase Console
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyAcBaKxlFC4Yqg4SNdg8l0lbo9dFCNTtJU",
+    authDomain: "asset-register-website.firebaseapp.com",
+    projectId: "asset-register-website",
+    storageBucket: "asset-register-website.firebasestorage.app",
+    messagingSenderId: "921107638281",
+    appId: "1:921107638281:web:ec5b50383bd4f6feea70d8"
 };
 
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
 const auth = firebase.auth();
+const db = firebase.firestore();
+
+console.log('🔥 Firebase initialized');
+console.log('✅ Auth:', auth);
+console.log('✅ Firestore:', db);
