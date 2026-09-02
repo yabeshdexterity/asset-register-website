@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login - Asset Register</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAcBaKxlFC4Yqg4SNdg8l0lbo9dFCNTtJU",
+    authDomain: "asset-register-website.firebaseapp.com",
+    projectId: "asset-register-website",
+    storageBucket: "asset-register-website.firebasestorage.app",
+    messagingSenderId: "921107638281",
+    appId: "1:921107638281:web:ec5b50383bd4f6feea70d8",
+    measurementId: "G-9DKFJ4T5XY"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  document.getElementById('loginBtn').onclick = async () => {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      window.location.href = "index.html";
+    } catch (error) {
+      let msg = "Login failed. Please try again.";
+      if (error.code === 'auth/invalid-credential') msg = "Invalid email or password.";
+      else if (error.code === 'auth/user-not-found') msg = "No user found with this email.";
+      else if (error.code === 'auth/wrong-password') msg = "Incorrect password.";
+      document.getElementById('errorMsg').textContent = msg;
+    }
+  };
+</script>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-box">
+      <h1>Asset Register</h1>
+      <p class="subtitle">Please sign in to continue</p>
+      <div class="form-group">
+        <input type="email" id="email" placeholder="Email Address">
+      </div>
+      <div class="form-group">
+        <input type="password" id="password" placeholder="Password">
+      </div>
+      <p id="errorMsg" style="color:var(--danger); font-size:12px; margin: 10px 0;"></p>
+      <button class="btn primary" id="loginBtn">Login</button>
+    </div>
+  </div>
+</body>
+</html>
