@@ -46,11 +46,15 @@
             
             <div class="login-message" id="loginMessage"></div>
             
-            <div class="login-links">
-                <p>Don't have an account? <a href="signup.html">Sign Up</a></p>
-                <p style="margin-top:8px;font-size:12px;color:var(--muted);">
-                    Demo: admin@company.com / admin123
-                </p>
+            <!-- Sign Up Link - This is what you need! -->
+            <div class="signup-link">
+                <p>Don't have an account? <a href="signup.html">Create One</a></p>
+            </div>
+            
+            <div class="demo-credentials">
+                <p><strong>Demo Credentials</strong></p>
+                <p>Email: <strong>admin@company.com</strong></p>
+                <p>Password: <strong>admin123</strong></p>
             </div>
         </div>
     </div>
@@ -218,21 +222,71 @@
             border: 1px solid rgba(76, 175, 80, 0.3);
         }
 
-        .login-links {
+        /* ============================================
+           SIGN UP LINK - This is the important part!
+        ============================================ */
+        .signup-link {
             text-align: center;
-            margin-top: 20px;
+            margin-top: 18px;
+            padding: 12px;
             font-size: 14px;
             color: var(--muted);
+            border-top: 1px solid var(--line);
         }
 
-        .login-links a {
+        .signup-link a {
             color: var(--teal);
             text-decoration: none;
-            font-weight: 600;
+            font-weight: 700;
+            font-size: 15px;
+            transition: all 0.3s;
+            display: inline-block;
         }
 
-        .login-links a:hover {
-            text-decoration: underline;
+        .signup-link a:hover {
+            color: var(--amber);
+            transform: scale(1.05);
+        }
+
+        .signup-link a::after {
+            content: " →";
+            transition: all 0.3s;
+        }
+
+        .signup-link a:hover::after {
+            transform: translateX(5px);
+        }
+
+        /* ============================================
+           DEMO CREDENTIALS
+        ============================================ */
+        .demo-credentials {
+            margin-top: 20px;
+            padding: 16px 20px;
+            background: var(--bg);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .demo-credentials p {
+            color: var(--muted);
+            font-size: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            margin: 2px 0;
+            line-height: 1.6;
+        }
+
+        .demo-credentials p:first-child {
+            font-weight: 700;
+            color: var(--text);
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .demo-credentials strong {
+            color: var(--teal);
+            font-weight: 600;
         }
 
         .loading-spinner {
@@ -278,6 +332,9 @@
                 right: 12px;
                 font-size: 12px;
                 padding: 6px 14px;
+            }
+            .signup-link {
+                font-size: 13px;
             }
         }
     </style>
