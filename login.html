@@ -46,10 +46,11 @@
             
             <div class="login-message" id="loginMessage"></div>
             
-            <div class="demo-credentials">
-                <p><strong>Demo Credentials</strong></p>
-                <p>Email: <strong>admin@company.com</strong></p>
-                <p>Password: <strong>admin123</strong></p>
+            <div class="login-links">
+                <p>Don't have an account? <a href="signup.html">Sign Up</a></p>
+                <p style="margin-top:8px;font-size:12px;color:var(--muted);">
+                    Demo: admin@company.com / admin123
+                </p>
             </div>
         </div>
     </div>
@@ -57,10 +58,8 @@
     <style>
         /* ============================================
            LOGIN PAGE SPECIFIC STYLES
-           (These override the main CSS for login)
         ============================================ */
         
-        /* Theme toggle button */
         .login-theme-toggle {
             position: fixed;
             top: 20px;
@@ -80,7 +79,6 @@
             border-color: var(--teal);
         }
 
-        /* Login Container */
         .login-container {
             display: flex;
             justify-content: center;
@@ -90,7 +88,6 @@
             padding: 20px;
         }
 
-        /* Login Box */
         .login-box {
             background: var(--panel);
             border: 1px solid var(--line);
@@ -128,7 +125,6 @@
             font-family: 'Inter', sans-serif;
         }
 
-        /* Form Groups */
         .login-box .form-group {
             margin-bottom: 18px;
         }
@@ -167,7 +163,6 @@
             box-shadow: 0 0 0 3px rgba(79, 209, 197, 0.15);
         }
 
-        /* Login Button */
         .login-box .btn.primary {
             background: var(--amber);
             border: none;
@@ -199,7 +194,6 @@
             transform: none !important;
         }
 
-        /* Login Message */
         .login-message {
             margin-top: 16px;
             padding: 10px 14px;
@@ -224,37 +218,23 @@
             border: 1px solid rgba(76, 175, 80, 0.3);
         }
 
-        /* Demo Credentials */
-        .demo-credentials {
-            margin-top: 24px;
-            padding: 16px 20px;
-            background: var(--bg);
-            border: 1px solid var(--line);
-            border-radius: 8px;
+        .login-links {
             text-align: center;
-        }
-
-        .demo-credentials p {
+            margin-top: 20px;
+            font-size: 14px;
             color: var(--muted);
-            font-size: 12px;
-            font-family: 'JetBrains Mono', monospace;
-            margin: 2px 0;
-            line-height: 1.6;
         }
 
-        .demo-credentials p:first-child {
-            font-weight: 700;
-            color: var(--text);
-            font-size: 13px;
-            margin-bottom: 4px;
-        }
-
-        .demo-credentials strong {
+        .login-links a {
             color: var(--teal);
+            text-decoration: none;
             font-weight: 600;
         }
 
-        /* Loading Spinner */
+        .login-links a:hover {
+            text-decoration: underline;
+        }
+
         .loading-spinner {
             display: inline-block;
             width: 16px;
@@ -271,64 +251,33 @@
             to { transform: rotate(360deg); }
         }
 
-        /* ============================================
-           RESPONSIVE
-        ============================================ */
         @media (max-width: 480px) {
             .login-box {
                 padding: 30px 20px 25px;
             }
-
             .login-box h1 {
                 font-size: 24px;
             }
-
             .login-box .logo {
                 font-size: 40px;
             }
-
             .login-box .subtitle {
                 font-size: 13px;
                 margin-bottom: 20px;
             }
-
             .login-box .form-group input {
                 font-size: 13px;
                 padding: 10px 14px;
             }
-
             .login-box .btn.primary {
                 font-size: 14px;
                 padding: 12px;
             }
-
-            .demo-credentials {
-                padding: 12px 16px;
-            }
-
-            .demo-credentials p {
-                font-size: 11px;
-            }
-
             .login-theme-toggle {
                 top: 12px;
                 right: 12px;
                 font-size: 12px;
                 padding: 6px 14px;
-            }
-        }
-
-        @media (max-width: 380px) {
-            .login-box {
-                padding: 24px 16px 20px;
-            }
-
-            .login-box h1 {
-                font-size: 20px;
-            }
-
-            .login-box .logo {
-                font-size: 32px;
             }
         }
     </style>
@@ -357,7 +306,7 @@
         }
 
         // ============================================
-        // AUTH CHECK - Redirect if already logged in
+        // CHECK IF ALREADY LOGGED IN
         // ============================================
         auth.onAuthStateChanged(user => {
             if (user) {
@@ -397,7 +346,7 @@
                 console.error('❌ Login error:', error);
                 let errorMsg = 'Login failed. Please try again.';
                 if (error.code === 'auth/user-not-found') {
-                    errorMsg = 'No account found with this email.';
+                    errorMsg = 'No account found with this email. Please sign up first.';
                 } else if (error.code === 'auth/wrong-password') {
                     errorMsg = 'Incorrect password. Please try again.';
                 } else if (error.code === 'auth/invalid-email') {
