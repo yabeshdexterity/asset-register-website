@@ -336,9 +336,11 @@
             updateSettingsUI();
         });
 
-        // Also update when theme changes from other pages (if user clicks sidebar toggle)
-        // We'll check periodically or use a MutationObserver
-        setInterval(updateSettingsUI, 1000);
+        // Also update when theme changes from other pages
+        // Check every second for changes
+        setInterval(function() {
+            updateSettingsUI();
+        }, 1000);
 
         // ============================================
         // SIDEBAR THEME TOGGLE - Uses shared function
