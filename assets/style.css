@@ -314,6 +314,277 @@ body {
 }
 
 /* ============================================
+   SYSTEM DETAILS - ADDITIONAL STYLES
+   (Add these to your existing style.css)
+============================================ */
+
+/* Header Actions */
+.header-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Small Buttons for Table Actions */
+.btn-sm {
+    padding: 4px 10px;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 600;
+}
+
+.btn-sm.edit {
+    background: rgba(52, 152, 219, 0.2);
+    color: #3498db;
+}
+.btn-sm.edit:hover {
+    background: #3498db;
+    color: #fff;
+}
+
+.btn-sm.move {
+    background: rgba(243, 156, 18, 0.2);
+    color: #f39c12;
+}
+.btn-sm.move:hover {
+    background: #f39c12;
+    color: #fff;
+}
+
+.btn-sm.delete {
+    background: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+}
+.btn-sm.delete:hover {
+    background: #e74c3c;
+    color: #fff;
+}
+
+.btn-sm.save {
+    background: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+}
+.btn-sm.save:hover {
+    background: #2ecc71;
+    color: #fff;
+}
+
+.btn-sm.cancel {
+    background: rgba(149, 165, 166, 0.2);
+    color: #95a5a6;
+}
+.btn-sm.cancel:hover {
+    background: #95a5a6;
+    color: #fff;
+}
+
+/* Action Buttons Container */
+.action-buttons {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+/* Editable Fields */
+.editable-field {
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    width: 100%;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.editable-field:focus {
+    outline: none;
+    background: var(--bg);
+    border: 1px solid var(--teal);
+}
+
+.editable-field:hover {
+    background: var(--bg);
+}
+
+/* Editing Row Highlight */
+.editing-row {
+    background: var(--teal-dim) !important;
+}
+
+.editing-row td {
+    border-bottom: 2px solid var(--teal);
+}
+
+/* Status Select Dropdown */
+.status-select {
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.status-select:focus {
+    outline: none;
+    border-color: var(--teal);
+}
+
+/* ============================================
+   MODAL OVERLAY
+============================================ */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(4px);
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 30px 35px;
+    max-width: 500px;
+    width: 95%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 24px 80px var(--panel-shadow);
+}
+
+.modal h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--text);
+    margin: 0 0 20px;
+    font-size: 22px;
+}
+
+.modal .form-group {
+    margin-bottom: 16px;
+}
+
+.modal .form-group label {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.modal .form-group input,
+.modal .form-group select {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+}
+
+.modal .form-group input:focus,
+.modal .form-group select:focus {
+    outline: none;
+    border-color: var(--teal);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    justify-content: flex-end;
+}
+
+.modal-actions .btn {
+    padding: 10px 24px;
+}
+
+/* ============================================
+   BUTTON VARIANTS
+============================================ */
+.btn.success {
+    background: var(--success);
+    border-color: var(--success);
+    color: #fff;
+}
+
+.btn.success:hover {
+    background: #2e7d32;
+    color: #fff;
+}
+
+.btn.warning {
+    background: #f39c12;
+    border-color: #f39c12;
+    color: #fff;
+}
+
+.btn.warning:hover {
+    background: #d68910;
+    color: #fff;
+}
+
+/* ============================================
+   RESPONSIVE - TABLE
+============================================ */
+@media (max-width: 768px) {
+    .action-buttons {
+        flex-direction: column;
+        gap: 3px;
+    }
+    
+    .btn-sm {
+        font-size: 9px;
+        padding: 3px 8px;
+    }
+    
+    .modal {
+        padding: 20px;
+        width: 95%;
+    }
+    
+    .editable-field {
+        font-size: 12px;
+        padding: 2px 4px;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-actions {
+        width: 100%;
+    }
+    
+    .header-actions .btn {
+        flex: 1;
+        justify-content: center;
+        font-size: 10px;
+        padding: 6px 10px;
+    }
+}
+
+/* ============================================
    ACTION GRID (Quick Actions)
 ============================================ */
 .action-grid {
