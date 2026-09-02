@@ -16,7 +16,11 @@
       <a href="rentals.html" class="nav-item active">🚚 Rental Details</a>
       <a href="extra-assets.html" class="nav-item">📦 Extra Assets</a>
       <a href="path-manager.html" class="nav-item">🗂️ Path Manager</a>
-      <button class="btn" onclick="openSettings()" style="margin-top:auto; width:100%;">⚙️ Settings</button>
+      <button class="btn" onclick="openSettings()" style="margin-top:10px; width:100%;">⚙️ Settings</button>
+      <button class="theme-toggle" onclick="toggleTheme()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 20v-2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m20 0h-2M4.22 19.78l1.42-1.42M17.66 5.34l1.42-1.42"/></svg>
+        <span id="themeLabel">Light Mode</span>
+      </button>
     </div>
   </div>
 
