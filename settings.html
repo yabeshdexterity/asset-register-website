@@ -180,6 +180,56 @@
         .theme-status strong {
             color: var(--teal);
         }
+        .nav-item {
+            display: block;
+            padding: 10px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text);
+            font-family: 'Inter';
+            font-weight: 500;
+            transition: all 0.2s;
+            margin-bottom: 4px;
+        }
+        .nav-item:hover {
+            background: var(--panel-alt);
+        }
+        .nav-item.active {
+            background: var(--teal-dim);
+            color: var(--teal);
+        }
+        .theme-toggle {
+            background: var(--panel-alt);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 10px 16px;
+            color: var(--text);
+            cursor: pointer;
+            font-family: 'Inter';
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .theme-toggle:hover {
+            border-color: var(--teal);
+        }
+        .logout-btn {
+            background: rgba(231, 76, 60, 0.15);
+            border: 1px solid rgba(231, 76, 60, 0.3);
+            border-radius: 8px;
+            padding: 10px 16px;
+            color: #e74c3c;
+            cursor: pointer;
+            font-family: 'Inter';
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .logout-btn:hover {
+            background: #e74c3c;
+            color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -194,10 +244,10 @@
                 <a href="path-manager.html" class="nav-item">🗂️ Path Manager</a>
                 <a href="settings.html" class="nav-item active">⚙️ Settings</a>
                 <button class="theme-toggle" onclick="toggleTheme()" style="margin-top:10px; width:100%;">
-                    <span class="theme-icon">☀️</span>
-                    <span class="theme-label">Light Mode</span>
+                    <span>☀️</span>
+                    <span id="themeLabel">Light Mode</span>
                 </button>
-                <button class="logout-btn" onclick="logout()" style="margin-top:10px;">Logout</button>
+                <button class="logout-btn" onclick="logout()" style="margin-top:10px; width:100%;">Logout</button>
             </div>
         </div>
 
@@ -222,7 +272,7 @@
                             <div class="slider"></div>
                         </div>
                         <div class="theme-switch-label">
-                            <span id="themeLabel">Dark Mode</span>
+                            <span id="themeLabelSwitch">Dark Mode</span>
                             <br><small id="themeSubLabel">Current: Dark</small>
                         </div>
                     </div>
@@ -236,7 +286,7 @@
                         </span>
                     </div>
 
-                    <div class="theme-status" id="themeStatus">
+                    <div class="theme-status">
                         Theme preference saved to <strong>localStorage</strong> — syncs across all pages
                     </div>
                 </div>
@@ -314,7 +364,7 @@
         function updateSettingsUI() {
             const isLight = document.body.classList.contains('light-mode');
             const switchEl = document.getElementById('themeSwitch');
-            const labelEl = document.getElementById('themeLabel');
+            const labelEl = document.getElementById('themeLabelSwitch');
             const subLabelEl = document.getElementById('themeSubLabel');
             const displayEl = document.getElementById('activeThemeDisplay');
             
@@ -336,21 +386,8 @@
             updateSettingsUI();
         });
 
-        // Also update when theme changes from other pages
-        // Check every second for changes
-        setInterval(function() {
-            updateSettingsUI();
-        }, 1000);
-
-        // ============================================
-        // SIDEBAR THEME TOGGLE - Uses shared function
-        // ============================================
-        
-        // The sidebar toggle button already calls toggleTheme() from theme.js
-        // But we need to update the switch UI when clicked
-        document.querySelector('.theme-toggle')?.addEventListener('click', function() {
-            setTimeout(updateSettingsUI, 100);
-        });
+        // Watch for theme changes
+        setInterval(updateSettingsUI, 500);
     </script>
 </body>
 </html>
