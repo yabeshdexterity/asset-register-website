@@ -10,17 +10,24 @@
 <body>
 <div class="app-container" id="appContainer" style="display:none;">
   <div class="sidebar">
-    <div class="brand"><h1>Asset Register</h1><p>IT Infrastructure</p></div>
-    <div class="nav-menu">
-      <a href="index.html" class="nav-item">📊 Dashboard</a>
-      <a href="system-details.html" class="nav-item">🖥️ System Details</a>
-      <a href="rentals.html" class="nav-item">🚚 Rental Details</a>
-      <a href="extra-assets.html" class="nav-item active">📦 Extra Assets</a>
-      <a href="path-manager.html" class="nav-item">🗂️ Path Manager</a>
-      <button class="theme-toggle" onclick="toggleTheme()">🌗 Theme</button>
-      <button class="logout-btn" onclick="logout()">Logout</button>
+    <div class="brand">
+        <h1>Asset Register</h1>
+        <p>IT Infrastructure</p>
     </div>
-  </div>
+    <div class="nav-menu">
+        <a href="index.html" class="nav-item">📊 Dashboard</a>
+        <a href="system-details.html" class="nav-item">🖥️ System Details</a>
+        <a href="rentals.html" class="nav-item">🚚 Rental Details</a>
+        <a href="extra-assets.html" class="nav-item active">📦 Extra Assets</a>
+        <a href="path-manager.html" class="nav-item">🗂️ Path Manager</a>
+        <a href="settings.html" class="nav-item">⚙️ Settings</a>
+        <button class="theme-toggle" onclick="toggleTheme()">
+            <span>☀️</span>
+            <span id="themeLabel">Light Mode</span>
+        </button>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+</div>
 
   <div class="main-content">
     <div class="topbar"><h2>Extra Assets</h2></div>
