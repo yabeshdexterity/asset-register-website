@@ -185,6 +185,26 @@ function renderStats() {
 
 async function loadAndRender() { const cloudData = await loadAllData(); if (!cloudData && !loadSettings().apiKey) openSettings(); else renderStats(); }
 document.addEventListener('DOMContentLoaded', loadAndRender);
+
+// Theme Toggle
+function toggleTheme() {
+  const body = document.body;
+  body.classList.toggle('light-mode');
+  const label = document.getElementById('themeLabel');
+  if (body.classList.contains('light-mode')) {
+    label.textContent = 'Dark Mode';
+    localStorage.setItem('theme', 'light');
+  } else {
+    label.textContent = 'Light Mode';
+    localStorage.setItem('theme', 'dark');
+  }
+}
+
+// Load theme on startup
+if (localStorage.getItem('theme') === 'light') {
+  document.body.classList.add('light-mode');
+  document.getElementById('themeLabel').textContent = 'Dark Mode';
+}
 </script>
 </body>
 </html>
