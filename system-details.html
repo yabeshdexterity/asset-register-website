@@ -6,181 +6,508 @@
 <title>System Details - Asset Register</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+<!-- Firebase Config -->
+<script src="assets/firebase-config.js"></script>
+
+<!-- Shared Theme Controller -->
+<script src="assets/theme.js"></script>
+
+<style>
+        .details-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .details-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .details-header h2 {
+            font-family: 'Space Grotesk';
+            font-size: 28px;
+            color: var(--text);
+            margin: 0;
+        }
+        .details-header p {
+            color: var(--muted);
+            margin: 5px 0 0;
+            font-size: 14px;
+        }
+        .search-box {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .search-box input, .search-box select {
+            padding: 10px 16px;
+            background: var(--bg);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: 'Inter';
+            font-size: 13px;
+            min-width: 200px;
+        }
+        .search-box input:focus, .search-box select:focus {
+            outline: none;
+            border-color: var(--teal);
+        }
+        .table-container {
+            overflow-x: auto;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        thead {
+            background: var(--bg);
+            border-bottom: 2px solid var(--line);
+        }
+        th {
+            padding: 14px 16px;
+            text-align: left;
+            font-family: 'JetBrains Mono';
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--muted);
+            cursor: pointer;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            background: var(--bg);
+            z-index: 10;
+        }
+        th:hover {
+            color: var(--text);
+        }
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--line);
+            color: var(--text);
+            vertical-align: middle;
+        }
+        tr:hover {
+            background: var(--panel-alt);
+        }
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono';
+        }
+        .status-badge.occupied {
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+        }
+        .status-badge.vacant {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--muted);
+        }
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        .empty-state h3 {
+            font-family: 'Space Grotesk';
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        .stats-bar {
+            display: flex;
+            gap: 30px;
+            padding: 15px 20px;
+            background: var(--bg);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .stats-bar .stat-item {
+            font-family: 'JetBrains Mono';
+            font-size: 13px;
+            color: var(--muted);
+        }
+        .stats-bar .stat-item strong {
+            color: var(--text);
+        }
+        .stats-bar .stat-item .num {
+            font-family: 'Space Grotesk';
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--teal);
+        }
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--panel);
+            color: var(--text);
+            padding: 15px 25px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 999;
+            font-family: 'JetBrains Mono';
+            font-size: 13px;
+        }
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .nav-item {
+            display: block;
+            padding: 10px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text);
+            font-family: 'Inter';
+            font-weight: 500;
+            transition: all 0.2s;
+            margin-bottom: 4px;
+        }
+        .nav-item:hover {
+            background: var(--panel-alt);
+        }
+        .nav-item.active {
+            background: var(--teal-dim);
+            color: var(--teal);
+        }
+        .theme-toggle {
+            background: var(--panel-alt);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 10px 16px;
+            color: var(--text);
+            cursor: pointer;
+            font-family: 'Inter';
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .theme-toggle:hover {
+            border-color: var(--teal);
+        }
+        .logout-btn {
+            background: rgba(231, 76, 60, 0.15);
+            border: 1px solid rgba(231, 76, 60, 0.3);
+            border-radius: 8px;
+            padding: 10px 16px;
+            color: #e74c3c;
+            cursor: pointer;
+            font-family: 'Inter';
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .logout-btn:hover {
+            background: #e74c3c;
+            color: #fff;
+        }
+    </style>
 </head>
 <body>
-<div class="app-container" id="appContainer" style="display:none;">
-  <div class="sidebar">
-    <div class="brand"><h1>Asset Register</h1><p>IT Infrastructure</p></div>
-    <div class="nav-menu">
-      <a href="index.html" class="nav-item">📊 Dashboard</a>
-      <a href="system-details.html" class="nav-item active">🖥️ System Details</a>
-      <a href="rentals.html" class="nav-item">🚚 Rental Details</a>
-      <a href="extra-assets.html" class="nav-item">📦 Extra Assets</a>
-      <a href="path-manager.html" class="nav-item">🗂️ Path Manager</a>
-      <button class="theme-toggle" onclick="toggleTheme()">🌗 Theme</button>
-      <button class="logout-btn" onclick="logout()">Logout</button>
-    </div>
-  </div>
-
-  <div class="main-content">
-    <div class="topbar">
-      <h2>System Details</h2>
-      <div class="topbar-actions">
-        <button class="btn" onclick="loadSeats()">🔄 Sync</button>
-      </div>
-    </div>
-
-    <div class="dashboard-layout">
-      <div class="left-panel">
-        <div class="search-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-          <input type="text" placeholder="Search seat, name..." id="searchInput">
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="brand"><h1>Asset Register</h1><p>IT Infrastructure</p></div>
+            <div class="nav-menu">
+                <a href="index.html" class="nav-item">📊 Dashboard</a>
+                <a href="system-details.html" class="nav-item active">🖥️ System Details</a>
+                <a href="rentals.html" class="nav-item">🚚 Rental Details</a>
+                <a href="extra-assets.html" class="nav-item">📦 Extra Assets</a>
+                <a href="path-manager.html" class="nav-item">🗂️ Path Manager</a>
+                <a href="settings.html" class="nav-item">⚙️ Settings</a>
+                <button class="theme-toggle" onclick="toggleTheme()" style="margin-top:10px; width:100%;">
+                    <span>☀️</span>
+                    <span id="themeLabel">Light Mode</span>
+                </button>
+                <button class="logout-btn" onclick="logout()" style="margin-top:10px; width:100%;">Logout</button>
+            </div>
         </div>
-        <h3 style="margin-top:0;">Seats</h3>
-        <div class="seat-list" id="seatList"></div>
-      </div>
 
-      <div class="right-panel">
-        <h3 style="margin-top:0;">System Details</h3>
-        <div id="detailsContainer"><p style="color:var(--muted);">Select a seat to view details.</p></div>
-      </div>
-    </div>
-  </div>
-</div>
+        <div class="main-content">
+            <div class="details-container">
+                <div class="details-header">
+                    <div>
+                        <h2>🖥️ System Details</h2>
+                        <p>View and manage all system configurations</p>
+                    </div>
+                    <button class="btn primary" onclick="loadAndRender()">🔄 Refresh</button>
+                </div>
 
-<div class="modal-overlay" id="moveUserModal">
-  <div class="modal">
-    <h2>Move User</h2>
-    <div class="form-group"><label>Select Destination Seat</label><select id="targetSeatSelect"></select></div>
-    <div style="color:var(--muted);font-size:12px;margin-bottom:15px;">This will overwrite any existing data at the destination seat.</div>
-    <div class="modal-actions"><button class="btn" onclick="closeMoveModal()">Cancel</button><button class="btn primary" onclick="confirmMove()">Move User</button></div>
-  </div>
-</div>
+                <div class="stats-bar" id="statsBar">
+                    <div class="stat-item">Total: <strong id="totalCount">0</strong></div>
+                    <div class="stat-item">Occupied: <span class="num" id="occupiedCount">0</span></div>
+                    <div class="stat-item">Vacant: <span class="num" id="vacantCount">0</span></div>
+                </div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="🔍 Search by seating, employee, CPU..." onkeyup="filterTable()">
+                    <select id="filterStatus" onchange="filterTable()">
+                        <option value="all">All Status</option>
+                        <option value="Occupied">Occupied</option>
+                        <option value="Vacant">Vacant</option>
+                    </select>
+                    <select id="filterOwnership" onchange="filterTable()">
+                        <option value="all">All Ownership</option>
+                        <option value="OFFICE">Office</option>
+                        <option value="RENTAL">Rental</option>
+                        <option value="OWN">Own</option>
+                    </select>
+                </div>
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyAcBaKxlFC4Yqg4SNdg8l0lbo9dFCNTtJU",
-    authDomain: "asset-register-website.firebaseapp.com",
-    projectId: "asset-register-website",
-    storageBucket: "asset-register-website.firebasestorage.app",
-    messagingSenderId: "921107638281",
-    appId: "1:921107638281:web:ec5b50383bd4f6feea70d8",
-    measurementId: "G-9DKFJ4T5XY"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  const FIELDS = [
-    {key:"seating_id", label:"Seating ID"}, {key:"seating_availability", label:"Status"}, 
-    {key:"employee_name", label:"Employee Name"}, {key:"employee_id", label:"Employee ID"},
-    {key:"employment_type", label:"Employment Type"}, {key:"intercom_number", label:"Intercom Number"}, 
-    {key:"desktop_name", label:"Desktop Name"}, {key:"ip_address", label:"IP Address"},
-    {key:"processor", label:"Processor"}, {key:"ram", label:"RAM"}, {key:"graphics_card", label:"Graphics Card"},
-    {key:"ssd", label:"SSD"}, {key:"hard_disk", label:"Hard Disk"}, {key:"keyboard_brand", label:"Keyboard Brand"},
-    {key:"mouse_brand", label:"Mouse Brand"}, {key:"cpu_cabinet_brand", label:"CPU Cabinet Brand"}, 
-    {key:"cpu_cabinet_id", label:"CPU Cabinet ID"}, {key:"monitor1_brand", label:"Monitor 1 Brand"},
-    {key:"monitor1_id", label:"Monitor 1 ID"}, {key:"monitor1_inches", label:"Monitor 1 Inches"},
-    {key:"monitor2_brand", label:"Monitor 2 Brand"}, {key:"monitor2_id", label:"Monitor 2 ID"},
-    {key:"monitor2_inches", label:"Monitor 2 Inches"}, {key:"ownership_cpu", label:"CPU Ownership"},
-    {key:"ownership_monitor1", label:"Monitor 1 Ownership"}, {key:"ownership_monitor2", label:"Monitor 2 Ownership"},
-    {key:"ownership_keyboard", label:"Keyboard Ownership"}, {key:"ownership_mouse", label:"Mouse Ownership"}
-  ];
-
-  let data = [], currentSeat = null, sourceSeatToMove = null;
-
-  window.toggleTheme = function(){ document.body.classList.toggle('light-mode'); };
-  window.logout = async function(){ await signOut(auth); window.location.href = "login.html"; };
-
-  async function loadSeats() {
-    const querySnapshot = await getDocs(collection(db, 'assets'));
-    data = [];
-    querySnapshot.forEach((doc) => { data.push({ id: doc.id, ...doc.data() }); });
-    renderSeats(document.getElementById('searchInput').value);
-  }
-
-  window.loadSeats = loadSeats;
-
-  function renderSeats(query = '') {
-    const list = document.getElementById('seatList'); list.innerHTML = '';
-    data.filter(d => !query || d.seating_id.toLowerCase().includes(query) || (d.employee_name||'').toLowerCase().includes(query))
-        .forEach(d => {
-          const el = document.createElement('div'); el.className = 'seat-item';
-          el.innerHTML = `<div class="id">${d.seating_id}</div><div class="name">${d.employee_name || 'Vacant'}</div>`;
-          el.onclick = () => showDetails(d); list.appendChild(el);
-        });
-  }
-
-  window.renderSeats = renderSeats;
-  document.getElementById('searchInput').addEventListener('input', e => renderSeats(e.target.value.toLowerCase()));
-
-  function showDetails(seat) {
-    currentSeat = seat.id;
-    const isOccupied = seat.seating_availability === 'Occupied';
-    let html = '';
-    FIELDS.forEach(f => { let val = seat[f.key] || ''; html += `<div class="field"><label>${f.label}</label><input type="text" id="detail_${f.key}" value="${val}"></div>`; });
-    document.getElementById('detailsContainer').innerHTML = `
-      <div style="display:flex;justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <h3 style="margin:0;">${seat.seating_id} Details</h3>
-        <div style="display:flex; gap:10px;">
-          ${isOccupied ? `<button class="btn" onclick="openMoveModal('${seat.id}')">🔄 Move User</button>` : ''}
-          <button class="btn primary" onclick="saveSeat()">Save</button>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable('seating_id')">Seating ID</th>
+                                <th onclick="sortTable('employee_name')">Employee</th>
+                                <th onclick="sortTable('seating_availability')">Status</th>
+                                <th onclick="sortTable('cpu_cabinet_id')">CPU</th>
+                                <th onclick="sortTable('processor')">Processor</th>
+                                <th onclick="sortTable('ram')">RAM</th>
+                                <th onclick="sortTable('monitor1_id')">Monitor 1</th>
+                                <th onclick="sortTable('monitor2_id')">Monitor 2</th>
+                                <th onclick="sortTable('ownership_cpu')">Ownership</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <tr><td colspan="9" class="empty-state">
+                                <div class="icon">🔄</div>
+                                <h3>Loading data...</h3>
+                            </td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-      </div>
-      <div class="field-grid">${html}</div>
-    `;
-  }
+    </div>
 
-  window.showDetails = showDetails;
+    <div class="toast" id="toast"></div>
 
-  window.saveSeat = async function() {
-    const seat = data.find(d => d.id === currentSeat);
-    FIELDS.forEach(f => { const el = document.getElementById(`detail_${f.key}`); if (el) seat[f.key] = el.value; });
-    await setDoc(doc(db, 'assets', seat.id), seat);
-    alert("Seat Saved!");
-  };
+    <script>
+        let allData = [];
+        let filteredData = [];
+        let sortColumn = '';
+        let sortDirection = 'asc';
 
-  window.openMoveModal = function(seatId) {
-    sourceSeatToMove = seatId;
-    const select = document.getElementById('targetSeatSelect'); select.innerHTML = '<option value="">Select destination seat...</option>';
-    data.filter(d => d.id !== seatId).forEach(seat => {
-      const option = document.createElement('option'); option.value = seat.id;
-      option.textContent = `${seat.seating_id} ${seat.employee_name ? `- ${seat.employee_name}` : ''} (${seat.seating_availability === 'Occupied' ? '🔴 Occupied' : '🟢 Vacant'})`;
-      select.appendChild(option);
-    });
-    document.getElementById('moveUserModal').classList.add('active');
-  };
+        // ============================================
+        // LOGOUT FUNCTION
+        // ============================================
 
-  window.closeMoveModal = function() { document.getElementById('moveUserModal').classList.remove('active'); sourceSeatToMove = null; };
+        window.logout = async function() { 
+            await auth.signOut(); 
+            window.location.href = "login.html"; 
+        };
 
-  window.confirmMove = async function() {
-    const targetSeatId = document.getElementById('targetSeatSelect').value;
-    if (!targetSeatId) { alert("Please select a destination seat"); return; }
-    const sourceSeat = data.find(d => d.id === sourceSeatToMove);
-    const targetSeat = data.find(d => d.id === targetSeatId);
-    
-    FIELDS.forEach(f => { if (f.key !== 'seating_id') targetSeat[f.key] = sourceSeat[f.key] || null; });
-    targetSeat.seating_availability = 'Occupied';
+        // ============================================
+        // LOAD DATA FROM FIRESTORE
+        // ============================================
 
-    FIELDS.forEach(f => { if (f.key !== 'seating_id' && f.key !== 'seating_availability') sourceSeat[f.key] = null; });
-    sourceSeat.seating_availability = 'Vacant';
+        async function loadData() {
+            try {
+                const snapshot = await db.collection('assets').get();
+                allData = [];
+                snapshot.forEach(doc => {
+                    allData.push({ id: doc.id, ...doc.data() });
+                });
+                console.log('✅ Loaded', allData.length, 'assets');
+                return allData;
+            } catch (error) {
+                console.error('❌ Error loading data:', error);
+                showToast('❌ Failed to load data');
+                return [];
+            }
+        }
 
-    await setDoc(doc(db, 'assets', targetSeat.id), targetSeat);
-    await setDoc(doc(db, 'assets', sourceSeat.id), sourceSeat);
-    document.getElementById('moveUserModal').classList.remove('active');
-    alert("User Moved Successfully!");
-    loadSeats();
-  };
+        // ============================================
+        // RENDER TABLE
+        // ============================================
 
-  onAuthStateChanged(auth, user => {
-    if (user) { document.getElementById('appContainer').style.display = 'flex'; loadSeats(); }
-    else { window.location.href = "login.html"; }
-  });
-</script>
+        function renderTable(data) {
+            const tbody = document.getElementById('tableBody');
+            
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `
+                    <tr><td colspan="9" class="empty-state">
+                        <div class="icon">📭</div>
+                        <h3>No systems found</h3>
+                        <p>No assets match your filters</p>
+                    </td></tr>
+                `;
+                return;
+            }
+
+            let html = '';
+            data.forEach(item => {
+                const statusClass = item.seating_availability === 'Occupied' ? 'occupied' : 'vacant';
+                html += `
+                    <tr>
+                        <td><strong>${item.seating_id || 'N/A'}</strong></td>
+                        <td>${item.employee_name || '—'}</td>
+                        <td><span class="status-badge ${statusClass}">${item.seating_availability || 'Unknown'}</span></td>
+                        <td>${item.cpu_cabinet_id || 'N/A'}</td>
+                        <td>${item.processor || 'N/A'}</td>
+                        <td>${item.ram || 'N/A'}</td>
+                        <td>${item.monitor1_id || 'N/A'}</td>
+                        <td>${item.monitor2_id || '—'}</td>
+                        <td>
+                            <span style="font-size:11px;font-family:'JetBrains Mono';">
+                                ${item.ownership_cpu || '—'}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+            updateStats(data);
+        }
+
+        // ============================================
+        // UPDATE STATS
+        // ============================================
+
+        function updateStats(data) {
+            const total = data.length;
+            const occupied = data.filter(d => d.seating_availability === 'Occupied').length;
+            const vacant = data.filter(d => d.seating_availability === 'Vacant').length;
+            
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('occupiedCount').textContent = occupied;
+            document.getElementById('vacantCount').textContent = vacant;
+        }
+
+        // ============================================
+        // FILTER TABLE
+        // ============================================
+
+        function filterTable() {
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('filterStatus').value;
+            const ownershipFilter = document.getElementById('filterOwnership').value;
+            
+            filteredData = allData.filter(item => {
+                // Status filter
+                if (statusFilter !== 'all' && item.seating_availability !== statusFilter) {
+                    return false;
+                }
+                
+                // Ownership filter
+                if (ownershipFilter !== 'all') {
+                    const cpuOwnership = item.ownership_cpu || '';
+                    const monitorOwnership = item.ownership_monitor1 || '';
+                    const keyboardOwnership = item.ownership_keyboard || '';
+                    const mouseOwnership = item.ownership_mouse || '';
+                    
+                    if (!cpuOwnership.includes(ownershipFilter) && 
+                        !monitorOwnership.includes(ownershipFilter) &&
+                        !keyboardOwnership.includes(ownershipFilter) &&
+                        !mouseOwnership.includes(ownershipFilter)) {
+                        return false;
+                    }
+                }
+                
+                // Search filter
+                if (searchQuery) {
+                    const searchFields = [
+                        item.seating_id, item.employee_name, item.cpu_cabinet_id,
+                        item.desktop_name, item.processor, item.ram
+                    ];
+                    return searchFields.some(field => 
+                        field && field.toLowerCase().includes(searchQuery)
+                    );
+                }
+                
+                return true;
+            });
+            
+            renderTable(filteredData);
+        }
+
+        // ============================================
+        // SORT TABLE
+        // ============================================
+
+        function sortTable(column) {
+            if (sortColumn === column) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = column;
+                sortDirection = 'asc';
+            }
+            
+            const dataToSort = filteredData.length > 0 ? filteredData : allData;
+            const sorted = [...dataToSort].sort((a, b) => {
+                let valA = a[column] || '';
+                let valB = b[column] || '';
+                
+                // Handle numbers
+                if (!isNaN(valA) && !isNaN(valB)) {
+                    valA = Number(valA);
+                    valB = Number(valB);
+                }
+                
+                if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+                if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+            
+            renderTable(sorted);
+        }
+
+        // ============================================
+        // TOAST NOTIFICATION
+        // ============================================
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // ============================================
+        // LOAD AND RENDER
+        // ============================================
+
+        async function loadAndRender() {
+            await loadData();
+            filteredData = [...allData];
+            renderTable(allData);
+            showToast('✅ Data refreshed!');
+        }
+
+        // ============================================
+        // INITIALIZE
+        // ============================================
+
+        document.addEventListener('DOMContentLoaded', loadAndRender);
+    </script>
 </body>
 </html>
