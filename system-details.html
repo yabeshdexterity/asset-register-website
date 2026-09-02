@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Details - Asset Register</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="app-container">
+  <div class="sidebar">
+    <div class="brand"><h1>Asset Register</h1><p>IT Infrastructure</p></div>
+    <div class="nav-menu">
+      <a href="index.html" class="nav-item">📊 Dashboard</a>
+      <a href="system-details.html" class="nav-item active">🖥️ System Details</a>
+      <a href="rentals.html" class="nav-item">🚚 Rental Details</a>
+      <a href="extra-assets.html" class="nav-item">📦 Extra Assets</a>
+      <a href="path-manager.html" class="nav-item">🗂️ Path Manager</a>
+      <button class="btn" onclick="openSettings()" style="margin-top:auto; width:100%;">⚙️ Settings</button>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="topbar">
+      <h2>System Details</h2>
+      <div class="topbar-actions">
+        <button class="btn" onclick="loadAndRender()">🔄 Sync</button>
+        <button class="btn primary" onclick="exportReport()">📊 Export</button>
+      </div>
+    </div>
+
+    <div class="dashboard-layout">
+      <div class="left-panel">
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input type="text" placeholder="Search seat, name..." id="searchInput">
+        </div>
+        <h3 style="margin-top:0;">Seats</h3>
+        <div class="seat-list" id="seatList"></div>
+      </div>
+
+      <div class="right-panel">
+        <h3 style="margin-top:0;">System Details</h3>
+        <div id="detailsContainer"><p style="color:var(--muted);">Select a seat to view details.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <h2>Cloud Settings</h2>
+    <div class="form-group"><label>JSONBin API Key</label><input type="password" id="webApiKey"></div>
+    <div class="form-group"><label>JSONBin Bin ID</label><input type="text" id="webBinId"></div>
+    <div class="modal-actions"><button class="btn" onclick="closeSettings()">Cancel</button><button class="btn primary" onclick="saveSettings()">Save</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="moveUserModal">
+  <div class="modal">
+    <h2>Move User</h2>
+    <div class="form-group"><label>Select Destination Seat</label><select id="targetSeatSelect"></select></div>
+    <div style="color:var(--muted);font-size:12px;margin-bottom:15px;">This will overwrite any existing data at the destination seat.</div>
+    <div class="modal-actions"><button class="btn" onclick="closeMoveModal()">Cancel</button><button class="btn primary" onclick="confirmMove()">Move User</button></div>
+  </div>
+</div>
+
+<script>
+let data = [], extraAssets = {cpu:[],monitor:[],keyboard:[],mouse:[]}, rentalItems = [], pmData = [];
+let currentSeat = null, sourceSeatToMove = null;
+const FIELDS = [{key:"seating_id", label:"Seating ID"}, {key:"seating_availability", label:"Status"}, {key:"employee_name", label:"Employee Name"}, {key:"employee_id", label:"Employee ID"}, {key:"employment_type", label:"Employment Type"}, {key:"intercom_number", label:"Intercom Number"}, {key:"desktop_name", label:"Desktop Name"}, {key:"ip_address", label:"IP Address"}, {key:"processor", label:"Processor"}, {key:"ram", label:"RAM"}, {key:"graphics_card", label:"Graphics Card"}, {key:"ssd", label:"SSD"}, {key:"hard_disk", label:"Hard Disk"}, {key:"keyboard_brand", label:"Keyboard Brand"}, {key:"mouse_brand", label:"Mouse Brand"}, {key:"cpu_cabinet_brand", label:"CPU Cabinet Brand"}, {key:"cpu_cabinet_id", label:"CPU Cabinet ID"}, {key:"monitor1_brand", label:"Monitor 1 Brand"}, {key:"monitor1_id", label:"Monitor 1 ID"}, {key:"monitor1_inches", label:"Monitor 1 Inches"}, {key:"monitor2_brand", label:"Monitor 2 Brand"}, {key:"monitor2_id", label:"Monitor 2 ID"}, {key:"monitor2_inches", label:"Monitor 2 Inches"}, {key:"ownership_cpu", label:"CPU Ownership"}, {key:"ownership_monitor1", label:"Monitor 1 Ownership"}, {key:"ownership_monitor2", label:"Monitor 2 Ownership"}, {key:"ownership_keyboard", label:"Keyboard Ownership"}, {key:"ownership_mouse", label:"Mouse Ownership"}];
+
+function loadSettings() { return { apiKey: localStorage.getItem('webApiKey'), binId: localStorage.getItem('webBinId') }; }
+async function apiRequest(method, path, body = null) { const { apiKey, binId } = loadSettings(); if (!apiKey || !binId) return null; try { const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}${path}`, { method, headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey }, body: body ? JSON.stringify(body) : null }); if (method === 'GET') { const result = await response.json(); return result.record; } return true; } catch (e) { console.error(e); return null; } }
+async function loadAllData() { const cloudData = await apiRequest('GET', '/latest'); if (cloudData) { if (cloudData.assets) data = cloudData.assets; if (cloudData.extraAssets) extraAssets = cloudData.extraAssets; if (cloudData.rentalItems) rentalItems = cloudData.rentalItems; if (cloudData.paths) pmData = cloudData.paths; } return cloudData; }
+async function autoSyncToCloud() { await apiRequest('PUT', '', { assets: data, extraAssets: extraAssets, rentalItems: rentalItems, paths: pmData }); }
+
+function showToast(msg) { let toast = document.querySelector('.toast'); if (!toast) { toast = document.createElement('div'); toast.className = 'toast'; document.body.appendChild(toast); } toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 3000); }
+function openSettings() { const s = loadSettings(); document.getElementById('webApiKey').value = s.apiKey || ''; document.getElementById('webBinId').value = s.binId || ''; document.getElementById('settingsModal').classList.add('active'); }
+function closeSettings() { document.getElementById('settingsModal').classList.remove('active'); }
+function saveSettings() { const apiKey = document.getElementById('webApiKey').value.trim(); const binId = document.getElementById('webBinId').value.trim(); if (!apiKey || !binId) { showToast('❌ Please enter both'); return; } localStorage.setItem('webApiKey', apiKey); localStorage.setItem('webBinId', binId); closeSettings(); showToast('✅ Settings saved!'); loadAndRender(); }
+
+async function exportReport() {
+  showToast('📊 Generating report...'); const workbook = new ExcelJS.Workbook();
+  const ws1 = workbook.addWorksheet('Asset Details'); const ws2 = workbook.addWorksheet('Rental Systems'); const ws3 = workbook.addWorksheet('Extra Assets');
+  const ws4 = workbook.addWorksheet('Summary'); const columns = FIELDS.map(f => ({ header: f.label, key: f.key })); ws1.columns = columns; data.forEach(row => ws1.addRow(row));
+  ws2.addRow(['S.No', 'Batch No', 'CPU', 'Monitor', 'CPU Spec', 'Service Tag']); rentalItems.forEach((r, i) => ws2.addRow([i+1, r.batchNo, r.cpu, r.monitor, r.cpuSpec, r.serviceTag]));
+  ws3.addRow(['Category', 'Brand', 'Quantity']); Object.keys(extraAssets).forEach(cat => (extraAssets[cat] || []).forEach(item => ws3.addRow([cat, item.brand, item.quantity])));
+  ws4.addRow(['Total Seats', data.length]); ws4.addRow(['Total Rentals', rentalItems.length]);
+  const buffer = await workbook.xlsx.writeBuffer(); const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }); saveAs(blob, `asset_register_${new Date().toISOString().slice(0,10)}.xlsx`); showToast('✅ Report exported!');
+}
+
+function renderSeats(query = '') {
+  const list = document.getElementById('seatList'); list.innerHTML = '';
+  data.filter(d => !query || d.seating_id.toLowerCase().includes(query) || (d.employee_name||'').toLowerCase().includes(query)).forEach(d => { const el = document.createElement('div'); el.className = 'seat-item'; el.innerHTML = `<div class="id">${d.seating_id}</div><div class="name">${d.employee_name || 'Vacant'}</div>`; el.onclick = () => showDetails(d); list.appendChild(el); });
+}
+function showDetails(seat) {
+  currentSeat = seat.seating_id; const isOccupied = seat.seating_availability === 'Occupied';
+  let html = ''; FIELDS.forEach(f => { let val = seat[f.key] || ''; html += `<div class="field"><label>${f.label}</label><input type="text" id="detail_${f.key}" value="${val}"></div>`; });
+  document.getElementById('detailsContainer').innerHTML = `<div style="display:flex;justify-content:space-between; align-items:center; margin-bottom:20px;"><h3 style="margin:0;">${seat.seating_id} Details</h3><div style="display:flex; gap:10px;">${isOccupied ? `<button class="btn" onclick="openMoveModal('${seat.seating_id}')">🔄 Move User</button>` : ''}<button class="btn primary" onclick="saveSeat()">Save</button></div></div><div class="field-grid">${html}</div>`;
+}
+async function saveSeat() { const seat = data.find(d => d.seating_id === currentSeat); FIELDS.forEach(f => { const el = document.getElementById(`detail_${f.key}`); if (el) seat[f.key] = el.value; }); await autoSyncToCloud(); showToast('✅ Seat saved!'); }
+document.getElementById('searchInput').addEventListener('input', e => renderSeats(e.target.value.toLowerCase()));
+async function loadAndRender() { const cloudData = await loadAllData(); if (!cloudData && !loadSettings().apiKey) openSettings(); else renderSeats(); }
+document.addEventListener('DOMContentLoaded', loadAndRender);
+
+function openMoveModal(seatId) { sourceSeatToMove = seatId; const select = document.getElementById('targetSeatSelect'); select.innerHTML = '<option value="">Select destination seat...</option>'; data.filter(d => d.seating_id !== seatId).forEach(seat => { const option = document.createElement('option'); option.value = seat.seating_id; option.textContent = `${seat.seating_id} ${seat.employee_name ? `- ${seat.employee_name}` : ''} (${seat.seating_availability === 'Occupied' ? '🔴 Occupied' : '🟢 Vacant'})`; select.appendChild(option); }); document.getElementById('moveUserModal').classList.add('active'); }
+function closeMoveModal() { document.getElementById('moveUserModal').classList.remove('active'); sourceSeatToMove = null; }
+async function confirmMove() { const targetSeatId = document.getElementById('targetSeatSelect').value; if (!targetSeatId) { showToast('❌ Please select a destination seat'); return; } const sourceRecord = data.find(d => d.seating_id === sourceSeatToMove); const targetRecord = data.find(d => d.seating_id === targetSeatId); if (!sourceRecord || !targetRecord) { showToast('Error: Seat not found'); return; } FIELDS.forEach(f => { if (f.key !== 'seating_id' && f.key !== 'si_no') targetRecord[f.key] = sourceRecord[f.key] || null; }); targetRecord.seating_availability = 'Occupied'; FIELDS.forEach(f => { if (f.key === 'seating_id') return; if (f.key === 'seating_availability') { sourceRecord[f.key] = 'Vacant'; return; } sourceRecord[f.key] = null; }); await autoSyncToCloud(); closeMoveModal(); loadAndRender(); showToast(`✅ User moved from ${sourceSeatToMove} to ${targetSeatId}!`); }
+</script>
+</body>
+</html>
