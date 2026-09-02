@@ -112,6 +112,26 @@ document.addEventListener('DOMContentLoaded', loadAndRender);
 function openMoveModal(seatId) { sourceSeatToMove = seatId; const select = document.getElementById('targetSeatSelect'); select.innerHTML = '<option value="">Select destination seat...</option>'; data.filter(d => d.seating_id !== seatId).forEach(seat => { const option = document.createElement('option'); option.value = seat.seating_id; option.textContent = `${seat.seating_id} ${seat.employee_name ? `- ${seat.employee_name}` : ''} (${seat.seating_availability === 'Occupied' ? '🔴 Occupied' : '🟢 Vacant'})`; select.appendChild(option); }); document.getElementById('moveUserModal').classList.add('active'); }
 function closeMoveModal() { document.getElementById('moveUserModal').classList.remove('active'); sourceSeatToMove = null; }
 async function confirmMove() { const targetSeatId = document.getElementById('targetSeatSelect').value; if (!targetSeatId) { showToast('❌ Please select a destination seat'); return; } const sourceRecord = data.find(d => d.seating_id === sourceSeatToMove); const targetRecord = data.find(d => d.seating_id === targetSeatId); if (!sourceRecord || !targetRecord) { showToast('Error: Seat not found'); return; } FIELDS.forEach(f => { if (f.key !== 'seating_id' && f.key !== 'si_no') targetRecord[f.key] = sourceRecord[f.key] || null; }); targetRecord.seating_availability = 'Occupied'; FIELDS.forEach(f => { if (f.key === 'seating_id') return; if (f.key === 'seating_availability') { sourceRecord[f.key] = 'Vacant'; return; } sourceRecord[f.key] = null; }); await autoSyncToCloud(); closeMoveModal(); loadAndRender(); showToast(`✅ User moved from ${sourceSeatToMove} to ${targetSeatId}!`); }
+
+// Theme Toggle
+function toggleTheme() {
+  const body = document.body;
+  body.classList.toggle('light-mode');
+  const label = document.getElementById('themeLabel');
+  if (body.classList.contains('light-mode')) {
+    label.textContent = 'Dark Mode';
+    localStorage.setItem('theme', 'light');
+  } else {
+    label.textContent = 'Light Mode';
+    localStorage.setItem('theme', 'dark');
+  }
+}
+
+// Load theme on startup
+if (localStorage.getItem('theme') === 'light') {
+  document.body.classList.add('light-mode');
+  document.getElementById('themeLabel').textContent = 'Dark Mode';
+}
 </script>
 </body>
 </html>
