@@ -27,7 +27,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-se
 .nav-item.active { background: var(--teal-dim); color: var(--teal); }
 .nav-item svg { width: 20px; height: 20px; }
 
-.main-content { flex: 1; margin-left: 250px; padding: 40px; }
+.main-content { flex: 1; margin-left: 250px; padding: 40px; width: calc(100% - 250px); }
 
 /* Topbar */
 .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
