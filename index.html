@@ -49,6 +49,7 @@
   </div>
 </div>
 
+<!-- Settings Modal -->
 <div class="modal-overlay" id="settingsModal">
   <div class="modal">
     <h2>Cloud Settings</h2>
@@ -57,6 +58,22 @@
     <div class="modal-actions">
       <button class="btn" onclick="closeSettings()">Cancel</button>
       <button class="btn primary" onclick="saveSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Move User Modal -->
+<div class="modal-overlay" id="moveUserModal">
+  <div class="modal">
+    <h2>Move User</h2>
+    <div class="form-group">
+      <label>Select Destination Seat</label>
+      <select id="targetSeatSelect"></select>
+    </div>
+    <div style="color:var(--muted);font-size:12px;margin-bottom:15px;">This will overwrite any existing data at the destination seat.</div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeMoveModal()">Cancel</button>
+      <button class="btn primary" onclick="confirmMove()">Move User</button>
     </div>
   </div>
 </div>
@@ -70,6 +87,8 @@ let extraAssets = { cpu: [], monitor: [], keyboard: [], mouse: [] };
 let rentalItems = [];
 let pmData = [];
 let currentSeat = null;
+let sourceSeatToMove = null;
+
 const FIELDS = [
   {key:"seating_id", label:"Seating ID"}, {key:"seating_availability", label:"Status"}, 
   {key:"employee_name", label:"Employee Name"}, {key:"employee_id", label:"Employee ID"},
@@ -130,7 +149,7 @@ async function exportReport() {
 }
 
 // ============================================================
-// DASHBOARD LOGIC
+// DASHBOARD & DETAILS
 // ============================================================
 function renderStats() {
   const occ = data.filter(d=>d.seating_availability==='Occupied').length;
@@ -140,11 +159,75 @@ function renderSeats(query = '') {
   const list = document.getElementById('seatList'); list.innerHTML = '';
   data.filter(d => !query || d.seating_id.toLowerCase().includes(query) || (d.employee_name||'').toLowerCase().includes(query)).forEach(d => { const el = document.createElement('div'); el.className = 'seat-item'; el.innerHTML = `<div class="id">${d.seating_id}</div><div class="name">${d.employee_name || 'Vacant'}</div>`; el.onclick = () => showDetails(d); list.appendChild(el); });
 }
-function showDetails(seat) { currentSeat = seat.seating_id; let html = ''; FIELDS.forEach(f => { let val = seat[f.key] || ''; html += `<div class="field"><label>${f.label}</label><input type="text" id="detail_${f.key}" value="${val}"></div>`; }); document.getElementById('detailsContainer').innerHTML = `<div style="display:flex;justify-content:space-between; margin-bottom:20px;"><h3 style="margin:0;">${seat.seating_id} Details</h3><button class="btn primary" onclick="saveSeat()">Save</button></div><div class="field-grid">${html}</div>`; }
+function showDetails(seat) {
+  currentSeat = seat.seating_id; 
+  const isOccupied = seat.seating_availability === 'Occupied';
+  let html = '';
+  FIELDS.forEach(f => { let val = seat[f.key] || ''; html += `<div class="field"><label>${f.label}</label><input type="text" id="detail_${f.key}" value="${val}"></div>`; });
+  document.getElementById('detailsContainer').innerHTML = `
+    <div style="display:flex;justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <h3 style="margin:0;">${seat.seating_id} Details</h3>
+      <div style="display:flex; gap:10px;">
+        ${isOccupied ? `<button class="btn" onclick="openMoveModal('${seat.seating_id}')">🔄 Move User</button>` : ''}
+        <button class="btn primary" onclick="saveSeat()">Save</button>
+      </div>
+    </div>
+    <div class="field-grid">${html}</div>
+  `;
+}
 async function saveSeat() { const seat = data.find(d => d.seating_id === currentSeat); FIELDS.forEach(f => { const el = document.getElementById(`detail_${f.key}`); if (el) seat[f.key] = el.value; }); await autoSyncToCloud(); showToast('✅ Seat saved!'); }
 document.getElementById('searchInput').addEventListener('input', e => renderSeats(e.target.value.toLowerCase()));
 async function loadAndRender() { const cloudData = await loadAllData(); if (!cloudData && !loadSettings().apiKey) openSettings(); else { renderStats(); renderSeats(); } }
 document.addEventListener('DOMContentLoaded', loadAndRender);
+
+// ============================================================
+// MOVE USER LOGIC
+// ============================================================
+function openMoveModal(seatId) {
+  sourceSeatToMove = seatId;
+  const select = document.getElementById('targetSeatSelect');
+  select.innerHTML = '<option value="">Select destination seat...</option>';
+  
+  data.filter(d => d.seating_id !== seatId).forEach(seat => {
+    const option = document.createElement('option');
+    option.value = seat.seating_id;
+    const status = seat.seating_availability === 'Occupied' ? '🔴 Occupied' : '🟢 Vacant';
+    const name = seat.employee_name ? ` - ${seat.employee_name}` : '';
+    option.textContent = `${seat.seating_id} ${name} (${status})`;
+    select.appendChild(option);
+  });
+
+  document.getElementById('moveUserModal').classList.add('active');
+}
+
+function closeMoveModal() { document.getElementById('moveUserModal').classList.remove('active'); sourceSeatToMove = null; }
+
+async function confirmMove() {
+  const targetSeatId = document.getElementById('targetSeatSelect').value;
+  if (!targetSeatId) { showToast('❌ Please select a destination seat'); return; }
+
+  const sourceRecord = data.find(d => d.seating_id === sourceSeatToMove);
+  const targetRecord = data.find(d => d.seating_id === targetSeatId);
+  if (!sourceRecord || !targetRecord) { showToast('Error: Seat not found'); return; }
+
+  // Copy data from Source to Target
+  FIELDS.forEach(f => {
+    if (f.key !== 'seating_id' && f.key !== 'si_no') targetRecord[f.key] = sourceRecord[f.key] || null;
+  });
+  targetRecord.seating_availability = 'Occupied';
+
+  // Clear Source
+  FIELDS.forEach(f => {
+    if (f.key === 'seating_id') return;
+    if (f.key === 'seating_availability') { sourceRecord[f.key] = 'Vacant'; return; }
+    sourceRecord[f.key] = null;
+  });
+
+  await autoSyncToCloud();
+  closeMoveModal();
+  loadAndRender();
+  showToast(`✅ User moved from ${sourceSeatToMove} to ${targetSeatId}!`);
+}
 </script>
 </body>
 </html>
