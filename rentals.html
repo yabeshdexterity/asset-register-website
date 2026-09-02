@@ -3,9 +3,176 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rental Details - Asset Register</title>
+<title>Extra Assets - Asset Register</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<!-- Firebase Config -->
+<script src="assets/firebase-config.js"></script>
+
+<!-- Shared Theme Controller -->
+<script src="assets/theme.js"></script>
+
+<style>
+    .rental-form {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 30px;
+    }
+    .rental-form h3 {
+        font-family: 'Space Grotesk';
+        color: var(--text);
+        margin: 0 0 16px 0;
+    }
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    .form-group {
+        margin-bottom: 0;
+    }
+    .form-group label {
+        display: block;
+        font-family: 'JetBrains Mono';
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 4px;
+    }
+    .form-group input, .form-group select {
+        width: 100%;
+        padding: 8px 12px;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        color: var(--text);
+        font-family: 'Inter';
+        font-size: 13px;
+    }
+    .form-group input:focus, .form-group select:focus {
+        outline: none;
+        border-color: var(--teal);
+    }
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-family: 'Inter';
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 13px;
+    }
+    .btn.primary {
+        background: var(--teal);
+        color: #fff;
+    }
+    .btn.primary:hover {
+        background: var(--teal-hover);
+        transform: translateY(-2px);
+    }
+    .btn.danger {
+        background: rgba(231, 76, 60, 0.15);
+        color: #e74c3c;
+        border: 1px solid rgba(231, 76, 60, 0.3);
+    }
+    .btn.danger:hover {
+        background: #e74c3c;
+        color: #fff;
+    }
+    .table-container {
+        overflow-x: auto;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+    thead {
+        background: var(--bg);
+        border-bottom: 2px solid var(--line);
+    }
+    th {
+        padding: 12px 16px;
+        text-align: left;
+        font-family: 'JetBrains Mono';
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--muted);
+        white-space: nowrap;
+    }
+    td {
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--line);
+        color: var(--text);
+    }
+    tr:hover {
+        background: var(--panel-alt);
+    }
+    .nav-item {
+        display: block;
+        padding: 10px 16px;
+        border-radius: 8px;
+        text-decoration: none;
+        color: var(--text);
+        font-family: 'Inter';
+        font-weight: 500;
+        transition: all 0.2s;
+        margin-bottom: 4px;
+    }
+    .nav-item:hover {
+        background: var(--panel-alt);
+    }
+    .nav-item.active {
+        background: var(--teal-dim);
+        color: var(--teal);
+    }
+    .theme-toggle {
+        background: var(--panel-alt);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px 16px;
+        color: var(--text);
+        cursor: pointer;
+        font-family: 'Inter';
+        font-weight: 500;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .theme-toggle:hover {
+        border-color: var(--teal);
+    }
+    .logout-btn {
+        background: rgba(231, 76, 60, 0.15);
+        border: 1px solid rgba(231, 76, 60, 0.3);
+        border-radius: 8px;
+        padding: 10px 16px;
+        color: #e74c3c;
+        cursor: pointer;
+        font-family: 'Inter';
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+    .logout-btn:hover {
+        background: #e74c3c;
+        color: #fff;
+    }
+</style>
 </head>
 <body>
 <div class="app-container" id="appContainer" style="display:none;">
@@ -14,120 +181,131 @@
     <div class="nav-menu">
       <a href="index.html" class="nav-item">📊 Dashboard</a>
       <a href="system-details.html" class="nav-item">🖥️ System Details</a>
-      <a href="rentals.html" class="nav-item active">🚚 Rental Details</a>
-      <a href="extra-assets.html" class="nav-item">📦 Extra Assets</a>
+      <a href="rentals.html" class="nav-item">🚚 Rental Details</a>
+      <a href="extra-assets.html" class="nav-item active">📦 Extra Assets</a>
       <a href="path-manager.html" class="nav-item">🗂️ Path Manager</a>
-      <button class="theme-toggle" onclick="toggleTheme()">🌗 Theme</button>
-      <button class="logout-btn" onclick="logout()">Logout</button>
+      <a href="settings.html" class="nav-item">⚙️ Settings</a>
+      <button class="theme-toggle" onclick="toggleTheme()" style="margin-top:10px; width:100%;">
+        <span>☀️</span>
+        <span id="themeLabel">Light Mode</span>
+      </button>
+      <button class="logout-btn" onclick="logout()" style="margin-top:10px; width:100%;">Logout</button>
     </div>
   </div>
 
   <div class="main-content">
-    <div class="topbar"><h2>Rental Details</h2></div>
+    <div class="topbar"><h2>📦 Extra Assets</h2></div>
     <div class="rental-form">
-      <h3>Add / Edit Rental Item</h3>
+      <h3>Add Extra Asset</h3>
       <div class="form-grid">
-        <div class="form-group"><label>Batch No</label><input type="text" id="rentalBatchNo"></div>
-        <div class="form-group"><label>CPU Total</label><input type="number" id="rentalCpu"></div>
-        <div class="form-group"><label>Total Monitor</label><input type="number" id="rentalMonitor"></div>
-        <div class="form-group"><label>Monitor Inch</label><input type="text" id="rentalMonitorInch"></div>
-        <div class="form-group"><label>Total Keyboard</label><input type="number" id="rentalKeyboard"></div>
-        <div class="form-group"><label>Total Mouse</label><input type="number" id="rentalMouse"></div>
-        <div class="form-group"><label>CPU Spec</label><input type="text" id="rentalCpuSpec"></div>
-        <div class="form-group"><label>Service Tag</label><input type="text" id="rentalServiceTag"></div>
-        <div class="form-group"><label>Request Date</label><div class="date-btn-group"><input type="text" id="rentalRequestDate" oninput="autoFormatDate(this)"><button class="today-btn" onclick="setTodayDate('rentalRequestDate')">Today</button></div></div>
-        <div class="form-group"><label>Problem Date</label><div class="date-btn-group"><input type="text" id="rentalProblemDate" oninput="autoFormatDate(this); calculateIdealDays()"><button class="today-btn" onclick="setTodayDate('rentalProblemDate'); calculateIdealDays()">Today</button></div></div>
-        <div class="form-group"><label>Replacement Date</label><div class="date-btn-group"><input type="text" id="rentalReplacementDate" oninput="autoFormatDate(this); calculateIdealDays()"><button class="today-btn" onclick="setTodayDate('rentalReplacementDate'); calculateIdealDays()">Today</button></div></div>
-        <div class="form-group"><label>Return Date</label><div class="date-btn-group"><input type="text" id="rentalReturnDate" oninput="autoFormatDate(this); calculateIdealDays()"><button class="today-btn" onclick="setTodayDate('rentalReturnDate'); calculateIdealDays()">Today</button></div></div>
-        <div class="form-group"><label>Ideal Days</label><input type="text" id="rentalIdealDays" readonly style="background-color:var(--teal-dim); color:var(--teal); font-weight:bold;"></div>
-        <div class="form-group"><label>Remarks</label><input type="text" id="rentalRemarks"></div>
+        <div class="form-group"><label>Asset Type</label><select id="assetType"><option value="cpu">CPU</option><option value="monitor">Monitor</option><option value="keyboard">Keyboard</option><option value="mouse">Mouse</option></select></div>
+        <div class="form-group"><label>Brand</label><select id="assetBrand"></select></div>
+        <div class="form-group"><label>Quantity</label><input type="number" id="assetQuantity" value="1" min="1"></div>
       </div>
-      <button class="btn primary" id="addRentalBtn">+ Add Rental</button>
-      <button class="btn ghost" id="cancelEditBtn" style="display:none;">Cancel Edit</button>
+      <button class="btn primary" onclick="addAsset()">+ Add Asset</button>
     </div>
     <div class="table-container">
-      <table><thead><tr><th>S.No</th><th>Batch</th><th>CPU</th><th>Monitor</th><th>CPU Spec</th><th>Service Tag</th><th>Status</th><th>Actions</th></tr></thead><tbody id="rentalTableBody"></tbody></table>
+      <table><thead><tr><th>Category</th><th>Brand</th><th>Quantity</th><th>Actions</th></tr></thead><tbody id="assetTableBody"></tbody></table>
     </div>
   </div>
 </div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+<script>
+  // Firebase is already initialized from CDN scripts
+  // auth and db are available from firebase-config.js
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyAcBaKxlFC4Yqg4SNdg8l0lbo9dFCNTtJU",
-    authDomain: "asset-register-website.firebaseapp.com",
-    projectId: "asset-register-website",
-    storageBucket: "asset-register-website.firebasestorage.app",
-    messagingSenderId: "921107638281",
-    appId: "1:921107638281:web:ec5b50383bd4f6feea70d8",
-    measurementId: "G-9DKFJ4T5XY"
+  const BRAND_OPTIONS = { 
+    cpu: ['ACER', 'DELL', 'ZEBRONICS', 'COOLER MASTER', 'POWER X'], 
+    monitor: ['ACER', 'DELL', 'ZEBSTER', 'ZEBRONICS', 'THINK VISION', 'HP', 'KRYSTAA', 'VIEWSONIC', 'LENOVO', 'LG'], 
+    keyboard: ['DELL', 'LOGITECH', 'HP', 'PORTRONIC', 'ZEBRONICS'], 
+    mouse: ['DELL', 'LOGITECH', 'PORTRONICS', 'ZEBRONICS'] 
+  };
+  let extraAssets = [];
+
+  window.logout = async function() { 
+    await auth.signOut(); 
+    window.location.href = "login.html"; 
   };
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  
-  let rentalItems = [], editingIndex = -1;
-
-  window.toggleTheme = function(){ document.body.classList.toggle('light-mode'); };
-  window.logout = async function(){ await signOut(auth); window.location.href = "login.html"; };
-
-  async function loadRentals() {
-    const querySnapshot = await getDocs(collection(db, 'rentals'));
-    rentalItems = [];
-    querySnapshot.forEach((doc) => { rentalItems.push({ id: doc.id, ...doc.data() }); });
-    renderRentals();
+  async function loadAssets() {
+    try {
+      const querySnapshot = await db.collection('extraAssets').get();
+      extraAssets = [];
+      querySnapshot.forEach((doc) => { 
+        extraAssets.push({ id: doc.id, ...doc.data() }); 
+      });
+      renderAssets();
+      console.log('✅ Loaded', extraAssets.length, 'extra assets');
+    } catch (error) {
+      console.error('❌ Error loading extra assets:', error);
+      alert('Failed to load extra assets');
+    }
   }
 
-  window.loadRentals = loadRentals;
-
-  function renderRentals() {
-    const tbody = document.getElementById('rentalTableBody'); tbody.innerHTML = '';
-    rentalItems.forEach((r, i) => {
-      tbody.innerHTML += `<tr><td>${i + 1}</td><td>${r.batchNo}</td><td>${r.cpu}</td><td>${r.monitor}</td><td>${r.cpuSpec}</td><td>${r.serviceTag}</td><td>${r.returnDate ? 'Returned' : 'Active'}</td><td><button class="btn" onclick="editRental(${i})">✏️</button> <button class="btn danger" onclick="deleteRental(${i})">🗑️</button></td></tr>`;
+  function renderAssets() {
+    const tbody = document.getElementById('assetTableBody'); 
+    tbody.innerHTML = '';
+    if (extraAssets.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--muted);">No extra assets found. Add one above!</td></tr>`;
+      return;
+    }
+    extraAssets.forEach((item, i) => {
+      tbody.innerHTML += `<tr><td>${item.category || ''}</td><td>${item.brand || ''}</td><td>${item.quantity || 1}</td><td><button class="btn danger" style="padding:4px 12px;font-size:12px;" onclick="deleteAsset(${i})">🗑️</button></td></tr>`;
     });
   }
 
-  function clearForm() { ['rentalBatchNo','rentalCpu','rentalMonitor','rentalMonitorInch','rentalKeyboard','rentalMouse','rentalCpuSpec','rentalServiceTag','rentalRequestDate','rentalProblemDate','rentalReplacementDate','rentalReturnDate','rentalIdealDays','rentalRemarks'].forEach(id => document.getElementById(id).value = ''); editingIndex = -1; }
+  function updateBrands() { 
+    const type = document.getElementById('assetType').value; 
+    const select = document.getElementById('assetBrand'); 
+    select.innerHTML = '<option value="">Select Brand...</option>'; 
+    (BRAND_OPTIONS[type] || []).forEach(b => select.innerHTML += `<option value="${b}">${b}</option>`); 
+  }
 
-  window.addRental = async function() {
-    const newItem = { batchNo: document.getElementById('rentalBatchNo').value, cpu: document.getElementById('rentalCpu').value, monitor: document.getElementById('rentalMonitor').value, monitorInch: document.getElementById('rentalMonitorInch').value, keyboard: document.getElementById('rentalKeyboard').value, mouse: document.getElementById('rentalMouse').value, cpuSpec: document.getElementById('rentalCpuSpec').value, serviceTag: document.getElementById('rentalServiceTag').value, requestDate: document.getElementById('rentalRequestDate').value, problemDate: document.getElementById('rentalProblemDate').value, replacementDate: document.getElementById('rentalReplacementDate').value, returnDate: document.getElementById('rentalReturnDate').value, idealDays: document.getElementById('rentalIdealDays').value, remarks: document.getElementById('rentalRemarks').value };
-    if (!newItem.batchNo) return alert("Batch No is required!");
-    
-    if (editingIndex > -1) {
-      const id = rentalItems[editingIndex].id;
-      await setDoc(doc(db, 'rentals', id), newItem);
-    } else {
-      await setDoc(doc(db, 'rentals', Date.now().toString()), newItem);
+  window.addAsset = async function() {
+    const type = document.getElementById('assetType').value;
+    const brand = document.getElementById('assetBrand').value;
+    const qty = parseInt(document.getElementById('assetQuantity').value) || 1;
+    if (!brand) {
+      alert("Please select a brand");
+      return;
     }
-    clearForm(); loadRentals(); alert("Rental saved!");
+    try {
+      await db.collection('extraAssets').add({ 
+        category: type, 
+        brand, 
+        quantity: qty 
+      });
+      loadAssets(); 
+      alert("Asset added!");
+    } catch (error) {
+      console.error('❌ Error adding asset:', error);
+      alert('Failed to add asset');
+    }
   };
 
-  window.editRental = function(i) {
-    editingIndex = i; const r = rentalItems[i];
-    document.getElementById('rentalBatchNo').value = r.batchNo || ''; document.getElementById('rentalCpu').value = r.cpu || ''; document.getElementById('rentalMonitor').value = r.monitor || ''; document.getElementById('rentalMonitorInch').value = r.monitorInch || ''; document.getElementById('rentalKeyboard').value = r.keyboard || ''; document.getElementById('rentalMouse').value = r.mouse || ''; document.getElementById('rentalCpuSpec').value = r.cpuSpec || ''; document.getElementById('rentalServiceTag').value = r.serviceTag || ''; document.getElementById('rentalRequestDate').value = r.requestDate || ''; document.getElementById('rentalProblemDate').value = r.problemDate || ''; document.getElementById('rentalReplacementDate').value = r.replacementDate || ''; document.getElementById('rentalReturnDate').value = r.returnDate || ''; document.getElementById('rentalIdealDays').value = r.idealDays || ''; document.getElementById('rentalRemarks').value = r.remarks || '';
-    document.getElementById('addRentalBtn').innerText = 'Update Rental'; document.getElementById('cancelEditBtn').style.display = 'inline-flex';
+  window.deleteAsset = async function(i) {
+    if (!confirm('Delete this asset?')) return;
+    try {
+      await db.collection('extraAssets').doc(extraAssets[i].id).delete();
+      loadAssets();
+    } catch (error) {
+      console.error('❌ Error deleting asset:', error);
+      alert('Failed to delete asset');
+    }
   };
 
-  window.deleteRental = async function(i) {
-    if (!confirm('Delete this rental?')) return;
-    await deleteDoc(doc(db, 'rentals', rentalItems[i].id));
-    rentalItems.splice(i, 1); renderRentals();
-  };
+  document.getElementById('assetType').onchange = updateBrands;
+  updateBrands();
 
-  window.autoFormatDate = function(input) { let value = input.value.replace(/\D/g, ''); if (value.length > 8) value = value.substring(0, 8); if (value.length > 4) input.value = value.substring(0, 2) + '-' + value.substring(2, 4) + '-' + value.substring(4, 8); else if (value.length > 2) input.value = value.substring(0, 2) + '-' + value.substring(2, 4); else input.value = value; };
-  window.setTodayDate = function(id) { const d = new Date(); document.getElementById(id).value = `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`; };
-  window.calculateIdealDays = function() { const p = document.getElementById('rentalProblemDate').value; const rep = document.getElementById('rentalReplacementDate').value; const ret = document.getElementById('rentalReturnDate').value; const end = rep || ret; if (p && end) { const p1 = p.split('-'), p2 = end.split('-'); const d1 = new Date(p1[2], p1[1] - 1, p1[0]); const d2 = new Date(p2[2], p2[1] - 1, p2[0]); if (d1 <= d2) document.getElementById('rentalIdealDays').value = Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24)); else document.getElementById('rentalIdealDays').value = ''; } else document.getElementById('rentalIdealDays').value = ''; };
-
-  document.getElementById('addRentalBtn').onclick = window.addRental;
-  document.getElementById('cancelEditBtn').onclick = () => { clearForm(); document.getElementById('addRentalBtn').innerText = '+ Add Rental'; document.getElementById('cancelEditBtn').style.display = 'none'; };
-
-  onAuthStateChanged(auth, user => {
-    if (user) { document.getElementById('appContainer').style.display = 'flex'; loadRentals(); }
-    else { window.location.href = "login.html"; }
+  // Auth check
+  auth.onAuthStateChanged(user => {
+    if (user) { 
+      document.getElementById('appContainer').style.display = 'flex'; 
+      loadAssets(); 
+    }
+    else { 
+      window.location.href = "login.html"; 
+    }
   });
 </script>
 </body>
