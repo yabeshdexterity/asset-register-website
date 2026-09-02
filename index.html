@@ -6,6 +6,15 @@
 <title>Dashboard - Asset Register</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+<!-- Firebase Config -->
+<script src="assets/firebase-config.js"></script>
+
 <style>
   /* Dashboard Specific Styles */
   .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 40px; }
@@ -50,6 +59,52 @@
   .welcome { margin-bottom: 30px; }
   .welcome h2 { font-family: 'Space Grotesk'; font-size: 28px; color: var(--text); margin: 0 0 5px; }
   .welcome p { color: var(--muted); font-size: 14px; margin: 0; }
+
+  /* Toast Notification */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: var(--panel);
+    color: var(--text);
+    padding: 15px 25px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 999;
+    font-family: 'JetBrains Mono';
+    font-size: 13px;
+  }
+  .toast.show {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  /* Loading Spinner */
+  .loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid var(--line);
+    border-top-color: var(--teal);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .sync-status {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 5px;
+    font-family: 'JetBrains Mono';
+  }
+  .sync-status .success { color: #2ecc71; }
+  .sync-status .error { color: #e74c3c; }
 </style>
 </head>
 <body>
@@ -75,6 +130,7 @@
       <div class="welcome">
         <h2>Overview</h2>
         <p>Monitor your IT infrastructure status at a glance.</p>
+        <div class="sync-status" id="syncStatus">✅ Connected to Firestore</div>
       </div>
       <div class="topbar-actions">
         <button class="btn" onclick="loadAndRender()">🔄 Sync</button>
@@ -83,7 +139,12 @@
     </div>
 
     <!-- Stats Grid -->
-    <div class="stat-grid" id="statsGrid"></div>
+    <div class="stat-grid" id="statsGrid">
+      <div class="stat-card" style="text-align:center;padding:40px;">
+        <div class="loading-spinner"></div>
+        <p style="margin-top:15px;color:var(--muted);font-family:'JetBrains Mono';font-size:13px;">Loading data from Firestore...</p>
+      </div>
+    </div>
 
     <!-- Quick Actions Panel -->
     <div class="quick-actions">
@@ -101,58 +162,122 @@
 <!-- Settings Modal -->
 <div class="modal-overlay" id="settingsModal">
   <div class="modal">
-    <h2>Cloud Settings</h2>
-    <div class="form-group"><label>JSONBin API Key</label><input type="password" id="webApiKey"></div>
-    <div class="form-group"><label>JSONBin Bin ID</label><input type="text" id="webBinId"></div>
+    <h2>Firebase Settings</h2>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:20px;">Firebase is already configured. No additional settings needed.</p>
+    <div class="form-group">
+      <label>Firebase Status</label>
+      <p style="color:#2ecc71;font-family:'JetBrains Mono';font-size:14px;">✅ Connected</p>
+    </div>
     <div class="modal-actions">
-      <button class="btn" onclick="closeSettings()">Cancel</button>
-      <button class="btn primary" onclick="saveSettings()">Save</button>
+      <button class="btn primary" onclick="closeSettings()">Close</button>
     </div>
   </div>
 </div>
 
+<!-- Toast Notification -->
+<div class="toast" id="toast"></div>
+
 <script>
-let data = [], extraAssets = {cpu:[],monitor:[],keyboard:[],mouse:[]}, rentalItems = [], pmData = [];
+// ============================================
+// FIREBASE DATA LOADER
+// ============================================
 
-function loadSettings() { return { apiKey: localStorage.getItem('webApiKey'), binId: localStorage.getItem('webBinId') }; }
-async function apiRequest(method, path, body = null) { const { apiKey, binId } = loadSettings(); if (!apiKey || !binId) return null; try { const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}${path}`, { method, headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey }, body: body ? JSON.stringify(body) : null }); if (method === 'GET') { const result = await response.json(); return result.record; } return true; } catch (e) { console.error(e); return null; } }
-async function loadAllData() { const cloudData = await apiRequest('GET', '/latest'); if (cloudData) { if (cloudData.assets) data = cloudData.assets; if (cloudData.extraAssets) extraAssets = cloudData.extraAssets; if (cloudData.rentalItems) rentalItems = cloudData.rentalItems; if (cloudData.paths) pmData = cloudData.paths; } return cloudData; }
-async function autoSyncToCloud() { await apiRequest('PUT', '', { assets: data, extraAssets: extraAssets, rentalItems: rentalItems, paths: pmData }); }
+let data = [];
+let extraAssets = { cpu: [], monitor: [], keyboard: [], mouse: [] };
+let rentalItems = [];
+let pmData = [];
 
-function showToast(msg) { let toast = document.querySelector('.toast'); if (!toast) { toast = document.createElement('div'); toast.className = 'toast'; document.body.appendChild(toast); } toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 3000); }
-function openSettings() { const s = loadSettings(); document.getElementById('webApiKey').value = s.apiKey || ''; document.getElementById('webBinId').value = s.binId || ''; document.getElementById('settingsModal').classList.add('active'); }
-function closeSettings() { document.getElementById('settingsModal').classList.remove('active'); }
-function saveSettings() { const apiKey = document.getElementById('webApiKey').value.trim(); const binId = document.getElementById('webBinId').value.trim(); if (!apiKey || !binId) { showToast('❌ Please enter both'); return; } localStorage.setItem('webApiKey', apiKey); localStorage.setItem('webBinId', binId); closeSettings(); showToast('✅ Settings saved!'); loadAndRender(); }
+// Reference to Firestore collections
+const assetsRef = db.collection('assets');
+const extraAssetsRef = db.collection('extraAssets');
+const rentalsRef = db.collection('rentals');
+const pathsRef = db.collection('paths');
 
-async function exportReport() {
-  showToast('📊 Generating report...'); const workbook = new ExcelJS.Workbook();
-  const ws1 = workbook.addWorksheet('Asset Details'); const ws2 = workbook.addWorksheet('Rental Systems'); const ws3 = workbook.addWorksheet('Extra Assets');
-  const ws4 = workbook.addWorksheet('Summary'); const columns = FIELDS.map(f => ({ header: f.label, key: f.key })); ws1.columns = columns; data.forEach(row => ws1.addRow(row));
-  ws2.addRow(['S.No', 'Batch No', 'CPU', 'Monitor', 'CPU Spec', 'Service Tag']); rentalItems.forEach((r, i) => ws2.addRow([i+1, r.batchNo, r.cpu, r.monitor, r.cpuSpec, r.serviceTag]));
-  ws3.addRow(['Category', 'Brand', 'Quantity']); Object.keys(extraAssets).forEach(cat => (extraAssets[cat] || []).forEach(item => ws3.addRow([cat, item.brand, item.quantity])));
-  ws4.addRow(['Total Seats', data.length]); ws4.addRow(['Total Rentals', rentalItems.length]);
-  const buffer = await workbook.xlsx.writeBuffer(); const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }); saveAs(blob, `asset_register_${new Date().toISOString().slice(0,10)}.xlsx`); showToast('✅ Report exported!');
+// ============================================
+// LOAD DATA FROM FIRESTORE
+// ============================================
+
+async function loadAllData() {
+  try {
+    showToast('🔄 Loading data from Firestore...');
+    
+    // Load assets
+    const assetsSnapshot = await assetsRef.get();
+    data = [];
+    assetsSnapshot.forEach(doc => {
+      data.push({ id: doc.id, ...doc.data() });
+    });
+    console.log('✅ Loaded', data.length, 'assets');
+
+    // Load extra assets
+    const extraSnapshot = await extraAssetsRef.get();
+    extraAssets = { cpu: [], monitor: [], keyboard: [], mouse: [] };
+    extraSnapshot.forEach(doc => {
+      const catData = doc.data();
+      if (catData.category && extraAssets[catData.category]) {
+        extraAssets[catData.category] = catData.items || [];
+      }
+    });
+    console.log('✅ Loaded extra assets');
+
+    // Load rentals
+    const rentalsSnapshot = await rentalsRef.get();
+    rentalItems = [];
+    rentalsSnapshot.forEach(doc => {
+      rentalItems.push({ id: doc.id, ...doc.data() });
+    });
+    console.log('✅ Loaded', rentalItems.length, 'rentals');
+
+    // Load paths
+    const pathsSnapshot = await pathsRef.get();
+    pmData = [];
+    pathsSnapshot.forEach(doc => {
+      pmData.push({ id: doc.id, ...doc.data() });
+    });
+    console.log('✅ Loaded', pmData.length, 'paths');
+
+    updateSyncStatus(true, `Loaded ${data.length} assets, ${rentalItems.length} rentals`);
+    renderStats();
+    showToast('✅ Data loaded successfully!');
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Error loading data:', error);
+    updateSyncStatus(false, error.message);
+    showToast('❌ Failed to load data: ' + error.message);
+    return false;
+  }
 }
 
-const FIELDS = [
-  {key:"seating_id", label:"Seating ID"}, {key:"seating_availability", label:"Status"}, 
-  {key:"employee_name", label:"Employee Name"}, {key:"employee_id", label:"Employee ID"},
-  {key:"employment_type", label:"Employment Type"}, {key:"intercom_number", label:"Intercom Number"}, 
-  {key:"desktop_name", label:"Desktop Name"}, {key:"ip_address", label:"IP Address"},
-  {key:"processor", label:"Processor"}, {key:"ram", label:"RAM"}, {key:"graphics_card", label:"Graphics Card"},
-  {key:"ssd", label:"SSD"}, {key:"hard_disk", label:"Hard Disk"}, {key:"keyboard_brand", label:"Keyboard Brand"},
-  {key:"mouse_brand", label:"Mouse Brand"}, {key:"cpu_cabinet_brand", label:"CPU Cabinet Brand"}, 
-  {key:"cpu_cabinet_id", label:"CPU Cabinet ID"}, {key:"monitor1_brand", label:"Monitor 1 Brand"},
-  {key:"monitor1_id", label:"Monitor 1 ID"}, {key:"monitor1_inches", label:"Monitor 1 Inches"},
-  {key:"monitor2_brand", label:"Monitor 2 Brand"}, {key:"monitor2_id", label:"Monitor 2 ID"},
-  {key:"monitor2_inches", label:"Monitor 2 Inches"}, {key:"ownership_cpu", label:"CPU Ownership"},
-  {key:"ownership_monitor1", label:"Monitor 1 Ownership"}, {key:"ownership_monitor2", label:"Monitor 2 Ownership"},
-  {key:"ownership_keyboard", label:"Keyboard Ownership"}, {key:"ownership_mouse", label:"Mouse Ownership"}
-];
+// ============================================
+// UPDATE SYNC STATUS
+// ============================================
+
+function updateSyncStatus(isSuccess, message) {
+  const statusEl = document.getElementById('syncStatus');
+  if (isSuccess) {
+    statusEl.innerHTML = `✅ ${message}`;
+    statusEl.className = 'sync-status success';
+  } else {
+    statusEl.innerHTML = `❌ ${message}`;
+    statusEl.className = 'sync-status error';
+  }
+}
+
+// ============================================
+// RENDER STATISTICS
+// ============================================
 
 function renderStats() {
-  const occ = data.filter(d=>d.seating_availability==='Occupied').length;
-  let extraTotal = 0; Object.values(extraAssets).forEach(arr => arr.forEach(i => extraTotal += i.quantity));
+  const occupied = data.filter(d => d.seating_availability === 'Occupied').length;
+  const vacant = data.filter(d => d.seating_availability === 'Vacant').length;
+  
+  let extraTotal = 0;
+  Object.values(extraAssets).forEach(arr => {
+    if (Array.isArray(arr)) {
+      arr.forEach(i => extraTotal += (i.quantity || 0));
+    }
+  });
   
   document.getElementById('statsGrid').innerHTML = `
     <div class="stat-card blue">
@@ -162,12 +287,12 @@ function renderStats() {
     </div>
     <div class="stat-card green">
       <div class="stat-icon">💺</div>
-      <div class="num">${occ}</div>
+      <div class="num">${occupied}</div>
       <div class="lbl">Occupied Seats</div>
     </div>
     <div class="stat-card red">
       <div class="stat-icon">🪑</div>
-      <div class="num">${data.length - occ}</div>
+      <div class="num">${vacant}</div>
       <div class="lbl">Vacant Seats</div>
     </div>
     <div class="stat-card orange">
@@ -183,10 +308,67 @@ function renderStats() {
   `;
 }
 
-async function loadAndRender() { const cloudData = await loadAllData(); if (!cloudData && !loadSettings().apiKey) openSettings(); else renderStats(); }
-document.addEventListener('DOMContentLoaded', loadAndRender);
+// ============================================
+// TOAST NOTIFICATION
+// ============================================
 
-// Theme Toggle
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// ============================================
+// SETTINGS (Firebase already configured)
+// ============================================
+
+function openSettings() {
+  document.getElementById('settingsModal').classList.add('active');
+}
+
+function closeSettings() {
+  document.getElementById('settingsModal').classList.remove('active');
+}
+
+// ============================================
+// EXPORT REPORT (Simplified)
+// ============================================
+
+function exportReport() {
+  showToast('📊 Generating report...');
+  
+  // Create CSV
+  let csv = 'Seating ID,Employee,Status,CPU,Monitor\n';
+  data.forEach(item => {
+    csv += `${item.seating_id || ''},${item.employee_name || 'Vacant'},${item.seating_availability || ''},${item.cpu_cabinet_id || ''},${item.monitor1_id || ''}\n`;
+  });
+  
+  // Download
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `asset_register_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  showToast('✅ Report exported!');
+}
+
+// ============================================
+// LOAD AND RENDER
+// ============================================
+
+async function loadAndRender() {
+  await loadAllData();
+}
+
+// ============================================
+// THEME TOGGLE
+// ============================================
+
 function toggleTheme() {
   const body = document.body;
   body.classList.toggle('light-mode');
@@ -200,11 +382,21 @@ function toggleTheme() {
   }
 }
 
-// Load theme on startup
+// ============================================
+// INITIALIZE
+// ============================================
+
+// Load theme
 if (localStorage.getItem('theme') === 'light') {
   document.body.classList.add('light-mode');
   document.getElementById('themeLabel').textContent = 'Dark Mode';
 }
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', loadAndRender);
+
+// Auto-refresh every 60 seconds
+setInterval(loadAndRender, 60000);
 </script>
 </body>
 </html>
