@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Extra Assets - Asset Register</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="app-container">
+  <div class="sidebar">
+    <div class="brand"><h1>Asset Register</h1><p>IT Infrastructure</p></div>
+    <div class="nav-menu">
+      <a href="index.html" class="nav-item">📊 Dashboard</a>
+      <a href="rentals.html" class="nav-item">🚚 Rental Details</a>
+      <a href="extra-assets.html" class="nav-item active">📦 Extra Assets</a>
+      <a href="path-manager.html" class="nav-item">🗂️ Path Manager</a>
+      <button class="btn" onclick="openSettings()" style="margin-top:auto; width:100%;">⚙️ Settings</button>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="topbar"><h2>Extra Assets</h2></div>
+    <div class="rental-form">
+      <h3>Add Extra Asset</h3>
+      <div class="form-grid">
+        <div class="form-group"><label>Asset Type</label><select id="assetType"><option value="cpu">CPU</option><option value="monitor">Monitor</option><option value="keyboard">Keyboard</option><option value="mouse">Mouse</option></select></div>
+        <div class="form-group"><label>Brand</label><select id="assetBrand"></select></div>
+        <div class="form-group"><label>Quantity</label><input type="number" id="assetQuantity" value="1" min="1"></div>
+      </div>
+      <button class="btn primary" onclick="addAsset()">+ Add Asset</button>
+    </div>
+    <div class="table-container">
+      <table><thead><tr><th>Category</th><th>Brand</th><th>Quantity</th><th>Actions</th></tr></thead><tbody id="assetTableBody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <h2>Cloud Settings</h2>
+    <div class="form-group"><label>JSONBin API Key</label><input type="password" id="webApiKey"></div>
+    <div class="form-group"><label>JSONBin Bin ID</label><input type="text" id="webBinId"></div>
+    <div class="modal-actions"><button class="btn" onclick="closeSettings()">Cancel</button><button class="btn primary" onclick="saveSettings()">Save</button></div>
+  </div>
+</div>
+
+<script>
+let extraAssets = { cpu: [], monitor: [], keyboard: [], mouse: [] };
+const BRAND_OPTIONS = { cpu: ['ACER', 'DELL', 'ZEBRONICS', 'COOLER MASTER', 'POWER X'], monitor: ['ACER', 'DELL', 'ZEBSTER', 'ZEBRONICS', 'THINK VISION', 'HP', 'KRYSTAA', 'VIEWSONIC', 'LENOVO', 'LG'], keyboard: ['DELL', 'LOGITECH', 'HP', 'PORTRONIC', 'ZEBRONICS'], mouse: ['DELL', 'LOGITECH', 'PORTRONICS', 'ZEBRONICS'] };
+
+function loadSettings() { return { apiKey: localStorage.getItem('webApiKey'), binId: localStorage.getItem('webBinId') }; }
+async function apiRequest(method, path, body = null) { const { apiKey, binId } = loadSettings(); if (!apiKey || !binId) return null; try { const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}${path}`, { method, headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey }, body: body ? JSON.stringify(body) : null }); if (method === 'GET') { const result = await response.json(); return result.record; } return true; } catch (e) { console.error(e); return null; } }
+
+// Loads everything, keeps only assets
+async function loadAssets() { const cloudData = await apiRequest('GET', '/latest'); if (cloudData && cloudData.extraAssets) extraAssets = cloudData.extraAssets; renderAssets(); }
+
+// Saves EVERYTHING, not just assets!
+async function saveAllData() { const cloudData = await apiRequest('GET', '/latest'); if (!cloudData) return; cloudData.extraAssets = extraAssets; await apiRequest('PUT', '', cloudData); }
+
+function showToast(msg) { let toast = document.querySelector('.toast'); if (!toast) { toast = document.createElement('div'); toast.className = 'toast'; document.body.appendChild(toast); } toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 3000); }
+function openSettings() { const s = loadSettings(); document.getElementById('webApiKey').value = s.apiKey || ''; document.getElementById('webBinId').value = s.binId || ''; document.getElementById('settingsModal').classList.add('active'); }
+function closeSettings() { document.getElementById('settingsModal').classList.remove('active'); }
+function saveSettings() { const apiKey = document.getElementById('webApiKey').value.trim(); const binId = document.getElementById('webBinId').value.trim(); if (!apiKey || !binId) { showToast('❌ Please enter both'); return; } localStorage.setItem('webApiKey', apiKey); localStorage.setItem('webBinId', binId); closeSettings(); showToast('✅ Settings saved!'); loadAssets(); }
+function updateBrands() { const type = document.getElementById('assetType').value; const select = document.getElementById('assetBrand'); select.innerHTML = '<option value="">Select Brand...</option>'; (BRAND_OPTIONS[type] || []).forEach(b => select.innerHTML += `<option value="${b}">${b}</option>`); }
+function renderAssets() { const tbody = document.getElementById('assetTableBody'); tbody.innerHTML = ''; ['cpu','monitor','keyboard','mouse'].forEach(cat => { (extraAssets[cat] || []).forEach((item, i) => { tbody.innerHTML += `<tr><td>${cat}</td><td>${item.brand}</td><td>${item.quantity}</td><td><button class="btn danger" onclick="deleteAsset('${cat}', ${i})">🗑️</button></td></tr>`; }); }); }
+async function addAsset() { const type = document.getElementById('assetType').value; const brand = document.getElementById('assetBrand').value; const qty = parseInt(document.getElementById('assetQuantity').value) || 1; if (!brand) return showToast('Please select a brand'); if (!extraAssets[type]) extraAssets[type] = []; const existing = extraAssets[type].find(a => a.brand === brand); if (existing) existing.quantity += qty; else extraAssets[type].push({ brand, quantity: qty }); await saveAllData(); renderAssets(); showToast('✅ Asset added!'); }
+async function deleteAsset(cat, i) { extraAssets[cat].splice(i, 1); await saveAllData(); renderAssets(); }
+document.getElementById('assetType').onchange = updateBrands;
+document.addEventListener('DOMContentLoaded', async () => { updateBrands(); await loadAssets(); });
+</script>
+</body>
+</html>

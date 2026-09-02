@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rental Details - Asset Register</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="app-container">
+  <div class="sidebar">
+    <div class="brand"><h1>Asset Register</h1><p>IT Infrastructure</p></div>
+    <div class="nav-menu">
+      <a href="index.html" class="nav-item">📊 Dashboard</a>
+      <a href="rentals.html" class="nav-item active">🚚 Rental Details</a>
+      <a href="extra-assets.html" class="nav-item">📦 Extra Assets</a>
+      <a href="path-manager.html" class="nav-item">🗂️ Path Manager</a>
+      <button class="btn" onclick="openSettings()" style="margin-top:auto; width:100%;">⚙️ Settings</button>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="topbar"><h2>Rental Details</h2></div>
+    <div class="rental-form">
+      <h3>Add / Edit Rental Item</h3>
+      <div class="form-grid">
+        <div class="form-group"><label>Batch No</label><input type="text" id="rentalBatchNo"></div>
+        <div class="form-group"><label>CPU Total</label><input type="number" id="rentalCpu"></div>
+        <div class="form-group"><label>Total Monitor</label><input type="number" id="rentalMonitor"></div>
+        <div class="form-group"><label>Monitor Inch</label><input type="text" id="rentalMonitorInch"></div>
+        <div class="form-group"><label>Total Keyboard</label><input type="number" id="rentalKeyboard"></div>
+        <div class="form-group"><label>Total Mouse</label><input type="number" id="rentalMouse"></div>
+        <div class="form-group"><label>CPU Spec</label><input type="text" id="rentalCpuSpec"></div>
+        <div class="form-group"><label>Service Tag</label><input type="text" id="rentalServiceTag"></div>
+        <div class="form-group"><label>Request Date</label><div class="date-btn-group"><input type="text" id="rentalRequestDate" oninput="autoFormatDate(this)"><button class="today-btn" onclick="setTodayDate('rentalRequestDate')">Today</button></div></div>
+        <div class="form-group"><label>Problem Date</label><div class="date-btn-group"><input type="text" id="rentalProblemDate" oninput="autoFormatDate(this); calculateIdealDays()"><button class="today-btn" onclick="setTodayDate('rentalProblemDate'); calculateIdealDays()">Today</button></div></div>
+        <div class="form-group"><label>Replacement Date</label><div class="date-btn-group"><input type="text" id="rentalReplacementDate" oninput="autoFormatDate(this); calculateIdealDays()"><button class="today-btn" onclick="setTodayDate('rentalReplacementDate'); calculateIdealDays()">Today</button></div></div>
+        <div class="form-group"><label>Return Date</label><div class="date-btn-group"><input type="text" id="rentalReturnDate" oninput="autoFormatDate(this); calculateIdealDays()"><button class="today-btn" onclick="setTodayDate('rentalReturnDate'); calculateIdealDays()">Today</button></div></div>
+        <div class="form-group"><label>Ideal Days</label><input type="text" id="rentalIdealDays" readonly style="background-color:var(--teal-dim); color:var(--teal); font-weight:bold;"></div>
+        <div class="form-group"><label>Remarks</label><input type="text" id="rentalRemarks"></div>
+      </div>
+      <button class="btn primary" id="addRentalBtn">+ Add Rental</button>
+      <button class="btn ghost" id="cancelEditBtn" style="display:none;">Cancel Edit</button>
+    </div>
+    <div class="table-container">
+      <table><thead><tr><th>S.No</th><th>Batch</th><th>CPU</th><th>Monitor</th><th>CPU Spec</th><th>Service Tag</th><th>Status</th><th>Actions</th></tr></thead><tbody id="rentalTableBody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <h2>Cloud Settings</h2>
+    <div class="form-group"><label>JSONBin API Key</label><input type="password" id="webApiKey"></div>
+    <div class="form-group"><label>JSONBin Bin ID</label><input type="text" id="webBinId"></div>
+    <div class="modal-actions"><button class="btn" onclick="closeSettings()">Cancel</button><button class="btn primary" onclick="saveSettings()">Save</button></div>
+  </div>
+</div>
+
+<script>
+let rentalItems = [];
+let editingIndex = -1;
+
+function loadSettings() { return { apiKey: localStorage.getItem('webApiKey'), binId: localStorage.getItem('webBinId') }; }
+async function apiRequest(method, path, body = null) { const { apiKey, binId } = loadSettings(); if (!apiKey || !binId) return null; try { const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}${path}`, { method, headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey }, body: body ? JSON.stringify(body) : null }); if (method === 'GET') { const result = await response.json(); return result.record; } return true; } catch (e) { console.error(e); return null; } }
+
+// Loads EVERYTHING, but only keeps rentals visible
+async function loadRentals() { 
+  const cloudData = await apiRequest('GET', '/latest'); 
+  if (cloudData && cloudData.rentalItems) rentalItems = cloudData.rentalItems; 
+  renderRentals(); 
+}
+
+// Saves EVERYTHING back to the cloud, not just rentals!
+async function saveAllData() { 
+  const cloudData = await apiRequest('GET', '/latest'); 
+  if (!cloudData) return; 
+  cloudData.rentalItems = rentalItems; 
+  await apiRequest('PUT', '', cloudData); 
+}
+
+function showToast(msg) { let toast = document.querySelector('.toast'); if (!toast) { toast = document.createElement('div'); toast.className = 'toast'; document.body.appendChild(toast); } toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 3000); }
+function openSettings() { const s = loadSettings(); document.getElementById('webApiKey').value = s.apiKey || ''; document.getElementById('webBinId').value = s.binId || ''; document.getElementById('settingsModal').classList.add('active'); }
+function closeSettings() { document.getElementById('settingsModal').classList.remove('active'); }
+function saveSettings() { const apiKey = document.getElementById('webApiKey').value.trim(); const binId = document.getElementById('webBinId').value.trim(); if (!apiKey || !binId) { showToast('❌ Please enter both'); return; } localStorage.setItem('webApiKey', apiKey); localStorage.setItem('webBinId', binId); closeSettings(); showToast('✅ Settings saved!'); loadRentals(); }
+function autoFormatDate(input) { let value = input.value.replace(/\D/g, ''); if (value.length > 8) value = value.substring(0, 8); if (value.length > 4) input.value = value.substring(0, 2) + '-' + value.substring(2, 4) + '-' + value.substring(4, 8); else if (value.length > 2) input.value = value.substring(0, 2) + '-' + value.substring(2, 4); else input.value = value; }
+function setTodayDate(id) { const d = new Date(); document.getElementById(id).value = `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`; }
+function calculateIdealDays() { const p = document.getElementById('rentalProblemDate').value; const rep = document.getElementById('rentalReplacementDate').value; const ret = document.getElementById('rentalReturnDate').value; const end = rep || ret; if (p && end) { const p1 = p.split('-'), p2 = end.split('-'); const d1 = new Date(p1[2], p1[1] - 1, p1[0]); const d2 = new Date(p2[2], p2[1] - 1, p2[0]); if (d1 <= d2) document.getElementById('rentalIdealDays').value = Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24)); else document.getElementById('rentalIdealDays').value = ''; } else document.getElementById('rentalIdealDays').value = ''; }
+function renderRentals() { const tbody = document.getElementById('rentalTableBody'); tbody.innerHTML = ''; rentalItems.forEach((r, i) => { tbody.innerHTML += `<tr><td>${i + 1}</td><td>${r.batchNo}</td><td>${r.cpu}</td><td>${r.monitor}</td><td>${r.cpuSpec}</td><td>${r.serviceTag}</td><td>${r.returnDate ? 'Returned' : 'Active'}</td><td><button class="btn" onclick="editRental(${i})">✏️</button> <button class="btn danger" onclick="deleteRental(${i})">🗑️</button></td></tr>`; }); }
+function clearForm() { ['rentalBatchNo','rentalCpu','rentalMonitor','rentalMonitorInch','rentalKeyboard','rentalMouse','rentalCpuSpec','rentalServiceTag','rentalRequestDate','rentalProblemDate','rentalReplacementDate','rentalReturnDate','rentalIdealDays','rentalRemarks'].forEach(id => document.getElementById(id).value = ''); editingIndex = -1; }
+async function addRental() { const newItem = { batchNo: document.getElementById('rentalBatchNo').value, cpu: document.getElementById('rentalCpu').value, monitor: document.getElementById('rentalMonitor').value, monitorInch: document.getElementById('rentalMonitorInch').value, keyboard: document.getElementById('rentalKeyboard').value, mouse: document.getElementById('rentalMouse').value, cpuSpec: document.getElementById('rentalCpuSpec').value, serviceTag: document.getElementById('rentalServiceTag').value, requestDate: document.getElementById('rentalRequestDate').value, problemDate: document.getElementById('rentalProblemDate').value, replacementDate: document.getElementById('rentalReplacementDate').value, returnDate: document.getElementById('rentalReturnDate').value, idealDays: document.getElementById('rentalIdealDays').value, remarks: document.getElementById('rentalRemarks').value }; if (!newItem.batchNo) return showToast('❌ Batch No is required!'); if (editingIndex > -1) rentalItems[editingIndex] = newItem; else rentalItems.push(newItem); await saveAllData(); clearForm(); renderRentals(); showToast('✅ Rental saved!'); }
+function editRental(i) { editingIndex = i; const r = rentalItems[i]; document.getElementById('rentalBatchNo').value = r.batchNo || ''; document.getElementById('rentalCpu').value = r.cpu || ''; document.getElementById('rentalMonitor').value = r.monitor || ''; document.getElementById('rentalMonitorInch').value = r.monitorInch || ''; document.getElementById('rentalKeyboard').value = r.keyboard || ''; document.getElementById('rentalMouse').value = r.mouse || ''; document.getElementById('rentalCpuSpec').value = r.cpuSpec || ''; document.getElementById('rentalServiceTag').value = r.serviceTag || ''; document.getElementById('rentalRequestDate').value = r.requestDate || ''; document.getElementById('rentalProblemDate').value = r.problemDate || ''; document.getElementById('rentalReplacementDate').value = r.replacementDate || ''; document.getElementById('rentalReturnDate').value = r.returnDate || ''; document.getElementById('rentalIdealDays').value = r.idealDays || ''; document.getElementById('rentalRemarks').value = r.remarks || ''; document.getElementById('addRentalBtn').innerText = 'Update Rental'; document.getElementById('cancelEditBtn').style.display = 'inline-flex'; }
+async function deleteRental(i) { if (!confirm('Delete this rental?')) return; rentalItems.splice(i, 1); await saveAllData(); renderRentals(); }
+document.getElementById('addRentalBtn').onclick = addRental;
+document.getElementById('cancelEditBtn').onclick = () => { clearForm(); document.getElementById('addRentalBtn').innerText = '+ Add Rental'; document.getElementById('cancelEditBtn').style.display = 'none'; };
+document.addEventListener('DOMContentLoaded', loadRentals);
+</script>
+</body>
+</html>
