@@ -73,6 +73,25 @@ async function addAsset() { const type = document.getElementById('assetType').va
 async function deleteAsset(cat, i) { extraAssets[cat].splice(i, 1); await saveAllData(); renderAssets(); }
 document.getElementById('assetType').onchange = updateBrands;
 document.addEventListener('DOMContentLoaded', async () => { updateBrands(); await loadAssets(); });
+// Theme Toggle
+function toggleTheme() {
+  const body = document.body;
+  body.classList.toggle('light-mode');
+  const label = document.getElementById('themeLabel');
+  if (body.classList.contains('light-mode')) {
+    label.textContent = 'Dark Mode';
+    localStorage.setItem('theme', 'light');
+  } else {
+    label.textContent = 'Light Mode';
+    localStorage.setItem('theme', 'dark');
+  }
+}
+
+// Load theme on startup
+if (localStorage.getItem('theme') === 'light') {
+  document.body.classList.add('light-mode');
+  document.getElementById('themeLabel').textContent = 'Dark Mode';
+}
 </script>
 </body>
 </html>
