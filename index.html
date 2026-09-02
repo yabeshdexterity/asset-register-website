@@ -1766,10 +1766,14 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('cancelDelete').addEventListener('click', closeDeleteModal);
   document.getElementById('confirmDelete').addEventListener('click', confirmDeleteSeat);
   document.getElementById('deleteConfirmModal').addEventListener('click', (e) => { if (e.target === this) closeDeleteModal(); });
-  document.getElementById('extraAssetsToggle').addEventListener('click', toggleExtraAssets);
+  document.getElementById('extraAssetsToggle').onclick = function() {
+  toggleExtraAssets();
+  };
   document.getElementById('closeExtraAssets').addEventListener('click', closeExtraAssets);
   document.getElementById('backFromExtra').addEventListener('click', closeExtraAssets);
-  document.getElementById('rentalToggle').addEventListener('click', toggleRentalPanel);
+  document.getElementById('rentalToggle').onclick = function() {
+  toggleRentalPanel();
+  };
   document.getElementById('closeRentalPanel').addEventListener('click', closeRentalPanel);
   document.getElementById('backFromRental').addEventListener('click', closeRentalPanel);
   document.getElementById('assetType').addEventListener('change', updateBrandOptions);
@@ -1833,7 +1837,9 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Path Manager
-  document.getElementById('pathManagerBtn').addEventListener('click', openPathManager);
+  document.getElementById('pathManagerBtn').onclick = function() {
+  openPathManager();
+  };
   document.getElementById('pathManagerModal').addEventListener('click', (e) => { if (e.target === document.getElementById('pathManagerModal')) closePathManager(); });
   document.getElementById('pmFormModal').addEventListener('click', (e) => { if (e.target === document.getElementById('pmFormModal')) closePMForm(); });
 
