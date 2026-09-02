@@ -99,6 +99,26 @@ async function deleteRental(i) { if (!confirm('Delete this rental?')) return; re
 document.getElementById('addRentalBtn').onclick = addRental;
 document.getElementById('cancelEditBtn').onclick = () => { clearForm(); document.getElementById('addRentalBtn').innerText = '+ Add Rental'; document.getElementById('cancelEditBtn').style.display = 'none'; };
 document.addEventListener('DOMContentLoaded', loadRentals);
+
+// Theme Toggle
+function toggleTheme() {
+  const body = document.body;
+  body.classList.toggle('light-mode');
+  const label = document.getElementById('themeLabel');
+  if (body.classList.contains('light-mode')) {
+    label.textContent = 'Dark Mode';
+    localStorage.setItem('theme', 'light');
+  } else {
+    label.textContent = 'Light Mode';
+    localStorage.setItem('theme', 'dark');
+  }
+}
+
+// Load theme on startup
+if (localStorage.getItem('theme') === 'light') {
+  document.body.classList.add('light-mode');
+  document.getElementById('themeLabel').textContent = 'Dark Mode';
+}
 </script>
 </body>
 </html>
