@@ -51,4 +51,67 @@
     projectId: "asset-register-website",
     storageBucket: "asset-register-website.firebasestorage.app",
     messagingSenderId: "921107638281",
-    appId
+    appId: "1:921107638281:web:ec5b50383bd4f6feea70d8",
+    measurementId: "G-9DKFJ4T5XY"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  let pmData = [], editingPM = -1;
+
+  window.toggleTheme = function(){ document.body.classList.toggle('light-mode'); };
+  window.logout = async function(){ await signOut(auth); window.location.href = "login.html"; };
+
+  async function loadPaths() {
+    const querySnapshot = await getDocs(collection(db, 'paths'));
+    pmData = [];
+    querySnapshot.forEach((doc) => { pmData.push({ id: doc.id, ...doc.data() }); });
+    renderPM();
+  }
+
+  function renderPM() {
+    const tbody = document.getElementById('pmTableBody'); tbody.innerHTML = '';
+    pmData.forEach((p, i) => {
+      tbody.innerHTML += `<tr><td>${p.category}</td><td>${p.name}</td><td>${p.path}</td><td><button class="btn" onclick="editPM(${i})">✏️</button> <button class="btn danger" onclick="deletePM(${i})">🗑️</button></td></tr>`;
+    });
+  }
+
+  function clearPM() { document.getElementById('pmName').value = ''; document.getElementById('pmPath').value = ''; document.getElementById('pmAddBtn').innerText = '+ Add Path'; document.getElementById('pmCancelBtn').style.display = 'none'; editingPM = -1; }
+
+  window.addPM = async function() {
+    const d = { category: document.getElementById('pmCategory').value, name: document.getElementById('pmName').value, path: document.getElementById('pmPath').value };
+    if (!d.name || !d.path) return alert("Please fill all fields");
+    if (editingPM > -1) {
+      await setDoc(doc(db, 'paths', pmData[editingPM].id), d);
+    } else {
+      await setDoc(doc(db, 'paths', Date.now().toString()), d);
+    }
+    clearPM(); loadPaths(); alert("Path saved!");
+  };
+
+  window.editPM = function(i) {
+    editingPM = i; const p = pmData[i];
+    document.getElementById('pmCategory').value = p.category;
+    document.getElementById('pmName').value = p.name;
+    document.getElementById('pmPath').value = p.path;
+    document.getElementById('pmAddBtn').innerText = 'Update Path'; document.getElementById('pmCancelBtn').style.display = 'inline-flex';
+  };
+
+  window.deletePM = async function(i) {
+    if (!confirm('Delete this path?')) return;
+    await deleteDoc(doc(db, 'paths', pmData[i].id));
+    loadPaths();
+  };
+
+  document.getElementById('pmAddBtn').onclick = window.addPM;
+  document.getElementById('pmCancelBtn').onclick = clearPM;
+
+  onAuthStateChanged(auth, user => {
+    if (user) { document.getElementById('appContainer').style.display = 'flex'; loadPaths(); }
+    else { window.location.href = "login.html"; }
+  });
+</script>
+</body>
+</html>
