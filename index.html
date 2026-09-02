@@ -14,6 +14,7 @@
 
 <!-- Firebase Config -->
 <script src="assets/firebase-config.js"></script>
+
 <!-- Shared Theme Controller -->
 <script src="assets/theme.js"></script>
 
@@ -107,6 +108,25 @@
   }
   .sync-status .success { color: #2ecc71; }
   .sync-status .error { color: #e74c3c; }
+  
+  .nav-item {
+    display: block;
+    padding: 10px 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--text);
+    font-family: 'Inter';
+    font-weight: 500;
+    transition: all 0.2s;
+    margin-bottom: 4px;
+  }
+  .nav-item:hover {
+    background: var(--panel-alt);
+  }
+  .nav-item.active {
+    background: var(--teal-dim);
+    color: var(--teal);
+  }
 </style>
 </head>
 <body>
@@ -120,9 +140,11 @@
       <a href="extra-assets.html" class="nav-item">📦 Extra Assets</a>
       <a href="path-manager.html" class="nav-item">🗂️ Path Manager</a>
       <a href="settings.html" class="nav-item">⚙️ Settings</a>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 20v-2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m20 0h-2M4.22 19.78l1.42-1.42M17.66 5.34l1.42-1.42"/></svg>
+      <button class="theme-toggle" onclick="toggleTheme()" style="margin-top:10px; width:100%;">
+        <span>☀️</span>
         <span id="themeLabel">Light Mode</span>
       </button>
+      <button class="logout-btn" onclick="logout()" style="margin-top:10px; width:100%;">Logout</button>
     </div>
   </div>
 
@@ -160,21 +182,6 @@
   </div>
 </div>
 
-<!-- Settings Modal -->
-<div class="modal-overlay" id="settingsModal">
-  <div class="modal">
-    <h2>Firebase Settings</h2>
-    <p style="color:var(--muted);font-size:13px;margin-bottom:20px;">Firebase is already configured. No additional settings needed.</p>
-    <div class="form-group">
-      <label>Firebase Status</label>
-      <p style="color:#2ecc71;font-family:'JetBrains Mono';font-size:14px;">✅ Connected</p>
-    </div>
-    <div class="modal-actions">
-      <button class="btn primary" onclick="closeSettings()">Close</button>
-    </div>
-  </div>
-</div>
-
 <!-- Toast Notification -->
 <div class="toast" id="toast"></div>
 
@@ -193,6 +200,15 @@ const assetsRef = db.collection('assets');
 const extraAssetsRef = db.collection('extraAssets');
 const rentalsRef = db.collection('rentals');
 const pathsRef = db.collection('paths');
+
+// ============================================
+// LOGOUT FUNCTION
+// ============================================
+
+window.logout = async function() { 
+  await auth.signOut(); 
+  window.location.href = "login.html"; 
+};
 
 // ============================================
 // LOAD DATA FROM FIRESTORE
@@ -322,19 +338,7 @@ function showToast(msg) {
 }
 
 // ============================================
-// SETTINGS (Firebase already configured)
-// ============================================
-
-function openSettings() {
-  document.getElementById('settingsModal').classList.add('active');
-}
-
-function closeSettings() {
-  document.getElementById('settingsModal').classList.remove('active');
-}
-
-// ============================================
-// EXPORT REPORT (Simplified)
+// EXPORT REPORT
 // ============================================
 
 function exportReport() {
@@ -367,31 +371,8 @@ async function loadAndRender() {
 }
 
 // ============================================
-// THEME TOGGLE
-// ============================================
-
-function toggleTheme() {
-  const body = document.body;
-  body.classList.toggle('light-mode');
-  const label = document.getElementById('themeLabel');
-  if (body.classList.contains('light-mode')) {
-    label.textContent = 'Dark Mode';
-    localStorage.setItem('theme', 'light');
-  } else {
-    label.textContent = 'Light Mode';
-    localStorage.setItem('theme', 'dark');
-  }
-}
-
-// ============================================
 // INITIALIZE
 // ============================================
-
-// Load theme
-if (localStorage.getItem('theme') === 'light') {
-  document.body.classList.add('light-mode');
-  document.getElementById('themeLabel').textContent = 'Dark Mode';
-}
 
 // Load data on page load
 document.addEventListener('DOMContentLoaded', loadAndRender);
